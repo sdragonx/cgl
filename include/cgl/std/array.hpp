@@ -1,0 +1,146 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ array.hpp
+
+ 2018-07-26 22:42:27
+
+ array<T, X>
+
+*/
+
+#ifndef ARRAY_HPP_20180726224227
+#define ARRAY_HPP_20180726224227
+
+#include <utility>
+#include <iterator>
+#include <algorithm>
+
+namespace cgl{
+
+template<typename T, size_t X>
+class array
+{
+public:
+    typedef array this_type;
+    typedef T                                     value_type;
+    typedef value_type&                           reference;
+    typedef const value_type&                     const_reference;
+    typedef value_type*                           iterator;
+    typedef const value_type*                     const_iterator;
+    typedef value_type*                           pointer;
+    typedef const value_type*                     const_pointer;
+    typedef size_t                                size_type;
+    typedef ptrdiff_t                             difference_type;
+    typedef std::reverse_iterator<iterator>       reverse_iterator;
+    typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+
+    enum{
+        count = X
+    };
+
+private:
+    value_type m_data[X];
+
+public:
+    size_type size()const {return X;}
+    size_type max_size()const {return X;}
+    bool empty()const {return !X;}
+
+    value_type* data() {return m_data;}
+    const value_type* data()const {return m_data;}
+
+    iterator begin() {return iterator(m_data);}
+    const_iterator begin()const {return const_iterator(m_data);}
+    iterator end() {return iterator(m_data + X);}
+    const_iterator end()const {return const_iterator(m_data + X);}
+
+    reverse_iterator rbegin() {return reverse_iterator(end());}
+    const_reverse_iterator rbegin()const {return const_reverse_iterator(end());}
+    reverse_iterator rend() {return reverse_iterator(begin());}
+    const_reverse_iterator rend()const {return const_reverse_iterator(begin());}
+
+    reference front() {return m_data[0];}
+    const_reference front()const {return m_data[0];}
+    reference back() {return m_data[size() > 0 ? size()-1 : 0];}
+    const_reference back()const {return m_data[size() > 0 ? size()-1 : 0];}
+
+    reference operator[](size_type n) {return m_data[n];}
+    const_reference operator[](size_type n)const {return m_data[n];}
+
+    reference at(size_type n)
+    {
+        #ifndef CGL_PLATFORM_ANDROID
+        if(n >= X)throw("array::at");
+        #endif
+
+        return m_data[n];
+    }
+
+    const_reference at(size_type n)const
+    {
+        #ifndef CGL_PLATFORM_ANDROID
+        if (n >= X)throw("array::at");
+        #endif
+
+        return m_data[n];
+
+    }
+
+    void fill(const value_type& value)
+    {
+        std::fill_n(m_data, X, value);
+    }
+
+    void swap(array& other)
+    {
+        std::swap_ranges(m_data, m_data + X, other.m_data);
+    }
+};
+
+
+template <class T, size_t X>
+inline bool operator==(const array<T, X>& left, const array<T, X>& right)
+{
+    return std::equal(left.data(), left.data() + X, right.data());
+}
+
+template <class T, size_t X>
+inline bool operator!=(const array<T, X>& left, const array<T, X>& right)
+{
+    return !(left == right);
+}
+
+template <class T, size_t X>
+inline bool operator<(const array<T, X>& left, const array<T, X>& right)
+{
+    return std::equal(left.data(), left.data() + X, right.data(), std::less<T>());
+}
+
+template <class T, size_t X>
+inline bool operator>(const array<T, X>& left, const array<T, X>& right)
+{
+    return right < left;
+}
+
+template <class T, size_t X>
+inline bool operator<=(const array<T, X>& left, const array<T, X>& right)
+{
+    return !(right < left);
+}
+
+template <class T, size_t X>
+inline bool operator>=(const array<T, X>& left, const array<T, X>& right)
+{
+    return !(left < right);
+}
+
+template <class T, size_t X>
+void swap(array<T, X>& left, array<T, X>& right)
+{
+    left.swap(right);
+}
+
+}//end namespace cgl
+
+#endif //ARRAY_HPP_20180726224227
