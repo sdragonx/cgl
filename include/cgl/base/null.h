@@ -1,0 +1,89 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ null.h
+
+ 2018-01-14 12:53:04
+ 2018-07-26 23:16
+
+*/
+#ifndef NULL_H_20180114125304
+#define NULL_H_20180114125304
+
+#include <cgl/base/char.h>
+
+namespace cgl{
+
+//
+// null_t nullptr
+//
+class null_t
+{
+public:
+    template<class T>
+    inline operator T*() const{
+        return 0;
+    }
+
+    template<class C, class T>
+    inline operator T C::*() const{
+        return 0;
+    }
+
+    template<typename T>
+    T cast()const
+    {
+        return static_cast<T>(0);
+    }
+
+    template<typename T>friend bool operator==(null_t, T* value);
+    template<typename T>friend bool operator==(null_t, const T* value);
+    template<typename T>friend bool operator==(T* , null_t);
+    template<typename T>friend bool operator==(const T* , null_t);
+    template<typename T>friend bool operator!=(null_t, T* value);
+    template<typename T>friend bool operator!=(null_t, const T* value);
+    template<typename T>friend bool operator!=(T* , null_t);
+    template<typename T>friend bool operator!=(const T* , null_t);
+private:
+    void operator&() const;
+};
+
+//pointer
+template<typename T> bool operator==(null_t, T* value) { return !value; }
+template<typename T> bool operator==(null_t, const T* value) { return !value; }
+template<typename T> bool operator==(T* value, null_t) { return !value; }
+template<typename T> bool operator==(const T* value, null_t) { return !value; }
+
+template<typename T> bool operator!=(null_t, T* value) { return value; }
+template<typename T> bool operator!=(null_t, const T* value) { return value; }
+template<typename T> bool operator!=(T* value, null_t) { return value; }
+template<typename T> bool operator!=(const T* value, null_t) { return value; }
+
+CGL_PUBLIC_DECLARE null_t null = null_t();
+
+#if __cplusplus < CGL_CPP11
+    #define nullptr null
+#endif
+
+//
+// csnull_t return a empty c style string
+//
+
+class csnull_t
+{
+public:
+    operator const char*()const   { return (const char*)(&ch); }
+    operator const wchar_t*()const{ return (const wchar_t*)(&ch); }
+    operator const char8_t*()const { return (const char8_t*)(&ch); }
+    operator const char16_t*()const { return (const char16_t*)(&ch); }
+    operator const char32_t*()const { return (const char32_t*)(&ch); }
+
+private:
+    const static int32_t ch = 0;
+};
+
+CGL_PUBLIC_DECLARE csnull_t csnull = csnull_t();
+
+}//end namespace cgl
+
+#endif //NULL_H_20180114125304
