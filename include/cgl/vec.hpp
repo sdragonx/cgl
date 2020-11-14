@@ -16,13 +16,25 @@
 #include <algorithm>
 #include <cmath>
 
-#ifdef PUBLIC_H_20150108153112
+#ifdef CGL_PUBLIC_H
     #include <cgl/public.h>
 #else
     #include <stdint.h>
     #include <float.h>
-#endif//PUBLIC_H_20150108153112
-//#include <cgl/std/type_traits.hpp>
+    namespace cgl{
+        //CGL_ALIGN
+        enum{
+            CGL_LEFT        = 0x01,
+            CGL_RIGHT       = 0x02,
+            CGL_HORIZONTAL  = 0x03,    //horizontal水平居中
+            CGL_TOP         = 0x04,
+            CGL_BOTTOM      = 0x08,
+            CGL_VERTICAL    = 0x0C,    //vertical垂直居中
+            CGL_CENTER      = 0x0F,    //居中
+            CGL_CLIENT      = 0xF0     //填充区域
+        };
+    }
+#endif
 
 #ifndef M_PI
     #define M_PI 3.141592653589793238462
@@ -32,7 +44,7 @@
     #define M_RD 0.017453292519943295769
 #endif
 
-#ifndef VEC_NOT_FAST_CAST
+#ifdef CGL_VECTOR_FAST_CAST
     #include <cgl/fast_cast.hpp>
     #define VEC_FAST_CAST(T,n) cgl::fast_cast<T>(n)
 #else
@@ -969,6 +981,25 @@ public://vector
         return *this;
     }
 
+    //透视除法
+    this_type& perspective_division()
+    {
+        if (is_zero(w)) {
+            return *this;
+        }
+
+        double n = 1.0 / w;
+        x *= n;
+        y *= n;
+        z *= n;
+        w = 1.0;
+
+        //把z从[-1,1]映射到[0,1]之间
+        //z = (z + 1.0f) * 0.5f;
+
+        return *this;
+    }
+
     this_type& rotate(value_type angle, value_type vx, value_type vy, value_type vz)
     {
         vec3<value_type> p(x, y, z);
@@ -1010,10 +1041,10 @@ public://vector
     }
 
 public://rectangle
-    vec2<value_type> xy()const
-    {
-        return vec2<value_type>(x, y);
-    }
+//    vec2<value_type> xy()const
+//    {
+//        return vec2<value_type>(x, y);
+//    }
 
     vec2<value_type> size()const
     {
@@ -1247,6 +1278,10 @@ VEC4_OPERATOR_COMMON(-)
 VEC4_OPERATOR_COMMON(*)
 VEC4_OPERATOR_COMMON(/)
 
+//
+// typedef
+//
+
 typedef vec2<int8_t> vec2b;
 typedef vec3<int8_t> vec3b;
 typedef vec4<int8_t> vec4b;
@@ -1287,5 +1322,34 @@ typedef vec4<double> vec4d;
 #undef VEC4_OPERATOR_COMMON
 
 }//end namespace cgl
+
+//
+// iostream
+//
+
+#if defined(_OSTREAM_) || defined(_GLIBCXX_OSTREAM)
+
+template<typename T>
+std::ostream& operator<<(std::ostream& stm, const cgl::vec2<T>& v)
+{
+    stm << '{' << v.x << ", " << v.y << '}';
+    return stm;
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream& stm, const cgl::vec3<T>& v)
+{
+    stm << '{' << v.x << ", " << v.y << ", " << v.z << '}';
+    return stm;
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream& stm, const cgl::vec4<T>& v)
+{
+    stm << '{' << v.x << ", " << v.y << ", " << v.z << ", " << v.w << '}';
+    return stm;
+}
+
+#endif
 
 #endif //CGL_VECTYPE_H_20150909203228
