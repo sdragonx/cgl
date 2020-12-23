@@ -1,0 +1,1 @@
+implib -a libogg.lib libogg.dll libvorbis.dll libvorbisfile.dll
