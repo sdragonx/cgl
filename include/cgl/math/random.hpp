@@ -1,77 +1,134 @@
 /*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
 
  random.hpp
 
- sdragonx 2015-07-28 13:53:18
+ 2015-07-28 13:53:18
+
+ android平台：
+ libc.so的标准库的函数，版本24之后支持
 
 */
 #ifndef RANDOM_HPP_20150728135318
 #define RANDOM_HPP_20150728135318
 
-#include <stdlib.h>
-#include <time.h>
+#include <cstdlib>
+#include <ctime>
+#include <cgl/public.h>
+#include <cgl/external/leveldb/util/random.h>
+
+#ifndef CGL_RANDOM_MAX
+    #define CGL_RANDOM_MAX INT32_MAX
+#endif
 
 namespace cgl{
+namespace math{
 
-//const int RANDOM_MAX = RAND_MAX;
+//
+// random generator
+//
+// void random.seed(uint32_t)
+// int random.gen()
+// int random.gen(int range)
+// int random.gen(int min, int max)
+//
+class basic_random
+{
+public:
+    leveldb::Random instance;
+
+public:
+    basic_random() : instance(0)
+    {
+    }
+
+    basic_random(uint32_t n) : instance(0)
+    {
+        this->seed(n);
+    }
+
+    void seed(uint32_t n)
+    {
+        instance = leveldb::Random(n);
+    }
+
+    int get()
+    {
+        return instance.Next();
+    }
+
+    int uniform(int n)
+    {
+        return instance.Uniform(n);
+    }
+
+};
+
+CGL_PUBLIC_DECLARE basic_random __cgl_random = basic_random();
+
+int random_max()
+{
+    return CGL_RANDOM_MAX;
+}
+
+void random_seed(int n)
+{
+    __cgl_random.seed(n);
+}
 
 //返回 0.0~1.0 之间的数值
 float rand_real()
 {
-	return std::rand() / float(RAND_MAX);
+    return __cgl_random.get() / float(CGL_RANDOM_MAX);
 }
 
 //会返回负数
 template<typename T>
 inline T random(T n)
 {
-    return n < 0 ? -std::rand()%n : std::rand()%n;
+    if(is_zero(n))return n;
+    return n < 0 ? -__cgl_random.uniform(n) : __cgl_random.uniform (n);
 }
 
 template<>
 inline float random<float>(float n)
 {
-    return std::rand() / float(RAND_MAX) * n;
+    return rand_real() * n;
 }
 
 template<>
 inline double random<double>(double n)
 {
-    return std::rand() / double(RAND_MAX) * n;
+    return rand_real() * n;
 }
 
 template<>
 inline long double random(long double n)
 {
-    return std::rand() / (long double)(RAND_MAX) * n;
-}
-
-template<typename T>
-inline T random_real(T min, T max) {
-	T n = rand_real();
-	return min + (max-min)*n;
+    return rand_real() * n;
 }
 
 template<typename T>
 inline T random(T min, T max) {
-	return min + random(max-min);
+    return min + random<T>(max - min);
 }
 
 template<>
 inline float random(float min, float max) {
-	return random_real(min, max);
+    return min + (max - min) * rand_real();
 }
 
 template<>
 inline double random(double min, double max) {
-	return random_real(min, max);
+    return min + (max - min) * rand_real();
 }
 
 template<>
 inline long double random(long double min, long double max) {
-    return random_real(min, max);
+    return min + (max - min) * rand_real();
 }
 
-}// end namespace cgl
+}//end namespace math
+}//end namespace cgl
 
 #endif //RANDOM_HPP_20150728135318
