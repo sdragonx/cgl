@@ -104,7 +104,7 @@ public:
 class gdibrush
 {
 public:
-    Gdiplus::SolidBrush * handle;
+    Gdiplus::SolidBrush* handle;
 
 public:
     gdibrush() : handle(new Gdiplus::SolidBrush(0))
@@ -126,6 +126,11 @@ public:
     void setColor(uint32_t color)
     {
         handle->SetColor(Gdiplus::Color(color));
+    }
+
+    void setColor(const Gdiplus::Color& color)
+    {
+        handle->SetColor(color);
     }
 
     void setColor(vec4ub color)
@@ -173,7 +178,15 @@ public:
         safe_delete(handle);
     }
 
-    unistring name();
+    unistring name()
+    {
+        Gdiplus::FontFamily family;
+        wchar_t buf[64] = {0};
+
+        handle->GetFamily(&family);
+        family.GetFamilyName(buf, 64);
+        return buf;
+    }
 
     int size()
     {
@@ -184,6 +197,11 @@ public:
     void set_size(int size)
     {
 
+    }
+
+    int style()const
+    {
+        return handle ? handle->GetStyle() : 0;
     }
 
 };
@@ -733,8 +751,8 @@ public://draw
     {
         Gdiplus::StringFormat format;
 
-        int hAlign = 0;
-        int vAlign = 0;
+        Gdiplus::StringAlignment hAlign = Gdiplus::StringAlignmentNear;
+        Gdiplus::StringAlignment vAlign = Gdiplus::StringAlignmentNear;
         if((align & CGL_HORIZONTAL) == CGL_HORIZONTAL){
             hAlign = Gdiplus::StringAlignmentCenter;
         }
@@ -749,7 +767,7 @@ public://draw
             vAlign = Gdiplus::StringAlignmentFar;
         }
 
-        format.SetAlignment(hAlign);//水平对齐
+        format.SetAlignment(hAlign);    //水平对齐
         format.SetLineAlignment(vAlign);//垂直对齐
         Gdiplus::RectF rect(x, y, width, height);
         handle->DrawString(text.c_str(), text.length(),
@@ -758,6 +776,24 @@ public://draw
             &format,
             brush.handle);
 
+    }
+
+    int text_width(const unichar_t* text)
+    {
+        Gdiplus::SizeF layoutSize(FLT_MAX, FLT_MAX);
+        Gdiplus::SizeF size;
+        handle->MeasureString(text, -1, font.handle, layoutSize, NULL, &size);
+
+        return size.Width;
+    }
+
+    int text_height(const unichar_t* text)
+    {
+        Gdiplus::SizeF layoutSize(FLT_MAX, FLT_MAX);
+        Gdiplus::SizeF size;
+        handle->MeasureString(text, -1, font.handle, layoutSize, NULL, &size);
+
+        return size.Height;
     }
 
 protected:

@@ -5,6 +5,14 @@
 
  2018-10-10 13:01:40
 
+ 2006-7-6 14:24:47	DC中的默认对象
+ CreateCompatibleDC(NULL)创建的dc的默认对象
+ Pen	= BLACK_PEN
+ Brush	= WHITE_BRUSH
+ Font	= SYSTEM_FIXED_FONT
+
+win98中不支持 DC_BRUSH、DC_PEN 对象，支持 DEVICE_DEFAULT_FONT、DEFAULT_GUI_FONT 对象
+
  这两个一样
 HDC dc = CreateDC("DISPLAY", NULL, NULL, NULL);
 HDC dc = GetDC(GetDesktopWindow());
@@ -114,6 +122,91 @@ handle_t default_object(int type)
         break;
     }
     return null;
+}
+
+/*
+ 函数名：IsStockObject
+
+ 功能：判断一个HGDIOBJ对象是否是内部GDI对象
+
+ 用法：PCTSTR IsStockObject(HGDIOBJ obj)
+
+ 参数：obj：GDI对象句柄
+
+ 返回：Windows内部GDI对象的名称
+
+  2006-8-14 8:18:04 by sdragon
+*/
+template<typename T>
+PCTSTR IsStockObject(T obj)
+{
+    if(obj == GetStockObject(WHITE_BRUSH))	return TEXT("WHITE_BRUSH");
+    if(obj == GetStockObject(LTGRAY_BRUSH))	return TEXT("LTGRAY_BRUSH");
+    if(obj == GetStockObject(GRAY_BRUSH))	return TEXT("GRAY_BRUSH");
+    if(obj == GetStockObject(DKGRAY_BRUSH))	return TEXT("DKGRAY_BRUSH");
+    if(obj == GetStockObject(BLACK_BRUSH))	return TEXT("BLACK_BRUSH");
+    if(obj == GetStockObject(NULL_BRUSH))	return TEXT("NULL_BRUSH");
+    if(obj == GetStockObject(WHITE_PEN))	return TEXT("WHITE_PEN");
+    if(obj == GetStockObject(BLACK_PEN))	return TEXT("BLACK_PEN");
+    if(obj == GetStockObject(NULL_PEN))		return TEXT("NULL_PEN");
+    if(obj == GetStockObject(OEM_FIXED_FONT))	return TEXT("OEM_FIXED_FONT");
+    if(obj == GetStockObject(ANSI_FIXED_FONT))	return TEXT("ANSI_FIXED_FONT");
+    if(obj == GetStockObject(ANSI_VAR_FONT))	return TEXT("ANSI_VAR_FONT");
+    if(obj == GetStockObject(SYSTEM_FONT))		return TEXT("SYSTEM_FONT");
+    if(obj == GetStockObject(DEVICE_DEFAULT_FONT))	return TEXT("DEVICE_DEFAULT_FONT");
+    if(obj == GetStockObject(DEFAULT_PALETTE))		return TEXT("DEFAULT_PALETTE");
+    if(obj == GetStockObject(SYSTEM_FIXED_FONT))	return TEXT("SYSTEM_FIXED_FONT");
+    #if(WINVER >= 0x0400)
+    if(obj == GetStockObject(DEFAULT_GUI_FONT))	return TEXT("DEFAULT_GUI_FONT");
+    #endif
+    #if (_WIN32_WINNT >= 0x0500)
+    if(obj == GetStockObject(DC_BRUSH))	return TEXT("DC_BRUSH");
+    if(obj == GetStockObject(DC_PEN))	return TEXT("DC_PEN");
+    #endif
+    return NULL;
+}
+
+/*
+ 函数名：GetStockObjectIndex
+
+ 功能：判断并获得内部GDI对象名称的索引
+
+ 用法：int GetStockObjectIndex(HGDIOBJ obj)
+
+ 参数：obj：GDI对象句柄
+
+ 返回：如果是内部GDI对象，返回内部GDI对象名称的索引
+       如果不是内部GDI对象，返回-1
+
+ 2006-8-14 8:21:04 by sdragon
+*/
+template<typename T>
+int GetStockObjectIndex(T obj)
+{
+	if(obj == GetStockObject(WHITE_BRUSH))	return 0;
+	if(obj == GetStockObject(LTGRAY_BRUSH))	return 1;
+	if(obj == GetStockObject(GRAY_BRUSH))	return 2;
+	if(obj == GetStockObject(DKGRAY_BRUSH))	return 3;
+	if(obj == GetStockObject(BLACK_BRUSH))	return 4;
+	if(obj == GetStockObject(NULL_BRUSH))	return 5;
+	if(obj == GetStockObject(WHITE_PEN))	return 6;
+	if(obj == GetStockObject(BLACK_PEN))	return 7;
+	if(obj == GetStockObject(NULL_PEN))		return 8;
+	if(obj == GetStockObject(OEM_FIXED_FONT))	return 10;
+	if(obj == GetStockObject(ANSI_FIXED_FONT))	return 11;
+	if(obj == GetStockObject(ANSI_VAR_FONT))	return 12;
+	if(obj == GetStockObject(SYSTEM_FONT))		return 13;
+	if(obj == GetStockObject(DEVICE_DEFAULT_FONT))	return 14;
+	if(obj == GetStockObject(DEFAULT_PALETTE))		return 15;
+	if(obj == GetStockObject(SYSTEM_FIXED_FONT))	return 16;
+	#if(WINVER >= 0x0400)
+	if(obj == GetStockObject(DEFAULT_GUI_FONT))	return 17;
+	#endif
+	#if (_WIN32_WINNT >= 0x0500)
+	if(obj == GetStockObject(DC_BRUSH))	return 18;
+	if(obj == GetStockObject(DC_PEN))	return 19;
+	#endif
+	return -1;
 }
 
 //
