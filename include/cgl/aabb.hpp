@@ -20,10 +20,63 @@
 namespace cgl{
 
 template<typename T>
+class aabb
+{
+public:
+    typedef aabb this_type;
+    typedef T value_type;
+
+protected:
+    value_type m_min;
+    value_type m_max;
+
+public:
+    aabb()
+    {
+        this->reset();
+    }
+
+    value_type min()const
+    {
+        return m_min;
+    }
+
+    value_type max()const
+    {
+        return m_max;
+    }
+
+    void reset()
+    {
+        m_min = std::numeric_limits<value_type>::max();
+        m_max = std::numeric_limits<value_type>::min();
+    }
+
+    void append(value_type value)
+    {
+        if(value < m_min) m_min = value;
+        if(value > m_max) m_max = value;
+    }
+
+    value_type size()const
+    {
+        return m_max - m_min;
+    }
+
+    void expand(value_type value)
+    {
+        m_min -= value;
+        m_max += value;
+    }
+};
+
+
+template<typename T>
 class aabb2
 {
 public:
     typedef aabb2 this_type;
+    typedef T value_type;
 
 public:
     T min_x, min_y;
@@ -37,11 +90,13 @@ public:
 
     aabb2(T x1, T y1, T x2, T y2)
     {
+        reset();
         this->assign(x1, y1, x2, y2);
     }
 
     aabb2(const std::vector< vec2<T> >& points)
     {
+        reset();
         this->assign(points);
     }
 
@@ -57,8 +112,8 @@ public:
 
     void reset()
     {
-        min_x = min_y = std::numeric_limits<int>::max();
-        max_x = max_y = std::numeric_limits<int>::min();
+        min_x = std::numeric_limits<value_type>::max();
+        max_x = std::numeric_limits<value_type>::min();
     }
 
     bool is_valid()const
@@ -163,6 +218,7 @@ class aabb3 : public aabb2<T>
 {
 public:
     typedef aabb3 this_type;
+    typedef T value_type;
 
 public:
     T min_z, max_z;
@@ -219,10 +275,19 @@ public:
         if(z > max_z) max_z = z;
     }
 
+    void expand(T n)
+    {
+        aabb2<T>::expand(n);
+        min_z -= n;
+        max_z += n;
+    }
 };
 
 typedef aabb2<int>   box2i;
 typedef aabb2<float> box2f;
+
+typedef aabb3<int>   box3i;
+typedef aabb3<float> box3f;
 
 }//end namespace cgl
 

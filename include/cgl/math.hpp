@@ -1,7 +1,7 @@
 /*
  Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
 
- cgl_math.h
+ math.hpp
 
  2006.06.18 18:50
 
@@ -26,11 +26,11 @@ CGL_FORCE_REAL32
 #ifndef MATH_H_200606181850
 #define MATH_H_200606181850
 
-#include <cgl/math/base.hpp>
-#include <cgl/math/random.hpp>
-#include <cgl/math/sqrt.hpp>
-#include <cgl/math/vector.hpp>
-#include <cgl/math/trigonometry.hpp>
+#include "math/base.hpp"
+#include "math/random.hpp"
+#include "math/sqrt.hpp"
+#include "math/vector.hpp"
+#include "math/trigonometry.hpp"
 
 #include "math/arithmetic.hpp"
 #include "math/collision.hpp"
@@ -42,19 +42,13 @@ CGL_FORCE_REAL32
 
 #include "math/model/line.hpp"
 #include "math/model/circle.hpp"
+#include "math/model/triangle.hpp"
 
 namespace cgl{
 namespace math{
 
 //---------------------------------------------------------------------------
 //数值运算
-
-//返回T的符号 -1 0 1
-template<typename T>
-inline int sign(const T& n)
-{
-    return n > 0 ? 1 : (n < 0 ? -1 : 0);
-}
 
 //判断一个数是否2的整数幂
 inline bool is_pow2(int n)
@@ -297,65 +291,6 @@ inline T align_next(T n, T m)
     return n;
 }
 
-template<typename T>
-inline bool in_range(T value, T min, T max)
-{
-    return min <= value && value < max;
-}
-
-//template<typename T>
-//inline bool in_range(T value, T max)
-//{
-//    return 0 <= value && value < max;
-//}
-
-//把数值控制在区间
-template<typename T>
-inline T clamp(T x, T min, T max)
-{
-    return x < min ? min : (max < x ? max : x);
-}
-
-//混合 a = 0 ~ 1
-template<typename T>
-inline T mix(T x, T y, T a)
-{
-    return x + (y - x) * a;
-}
-
-template<>inline float mix<float>(float x, float y, float a)
-{
-    return x + (y - x) * a;
-}
-
-template<>inline double mix<double>(double x, double y, double a)
-{
-    return x + (y - x) * a;
-}
-
-template<>inline long double mix<long double>(long double x, long double y, long double a)
-{
-    return x + (y - x) * a;
-}
-
-//从source递进到dest，步长为speed
-template<typename T>
-T step(T source, T dest, T speed)
-{
-    if(source < dest){
-        source += speed;
-        if(source > dest){
-            source = dest;
-        }
-    }
-    else if(source > dest){
-        source -= speed;
-        if(source < dest){
-            source = dest;
-        }
-    }
-    return source;
-}
 
 //greatest common divisor
 //最大公约数
@@ -389,7 +324,7 @@ int LCM(int x, int y)
 //比较浮点数
 int float_equal(float a, float b)
 {
-    if(is_zero<float>(a - b)){
+    if(is_zero(a - b)){
         return 0;
     }
     else{

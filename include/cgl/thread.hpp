@@ -47,8 +47,10 @@ class thread
 public:
     #ifdef CGL_PLATFORM_WINDOWS
         typedef int handle_type;
+        typedef void result_type;
     #else
         typedef pthread_t handle_type;
+        typedef void* result_type;
     #endif
 
     struct thread_state
@@ -155,11 +157,7 @@ public:
     }
 
 private:
-    #ifdef CGL_PLATFORM_WINDOWS
-    static void thread_proc(void * arg)
-    #else
-    static void* thread_proc(void * arg)
-    #endif
+    static result_type thread_proc(void* arg)
     {
         thread* t = (thread*)arg;
         t->state->function(t, t->state->arg);

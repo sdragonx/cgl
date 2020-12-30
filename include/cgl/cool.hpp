@@ -1,4 +1,5 @@
 /*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
 
  cool.hpp
 
@@ -9,7 +10,7 @@
  cool c;
  c = compare(a, b)
 
- sdragonx 2010-04-10 09:31:05
+ 2010-04-10 09:31:05
  revise   2014-7-11 14:37
 
 */
@@ -46,7 +47,7 @@ public:
     {
         value = __sign(n).value;
         return *this;
-	}
+    }
     template<typename T>operator T()const
     {
         return T(value);
@@ -78,7 +79,7 @@ private:
     int value;
 };
 
-typedef __sign sign, sign_t, cool, cool_t;
+typedef __sign sign_t, cool;
 
 } //end namespace cgl
 
