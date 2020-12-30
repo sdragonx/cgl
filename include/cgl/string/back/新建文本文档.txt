@@ -1,0 +1,163 @@
+
+#if 0
+//ansi string::assign
+template<>
+cstring<char>& cstring<char>::assign(const char* str, size32_t n)
+{
+	return this->_assign(str, n);
+}
+
+template<>
+cstring<char>& cstring<char>::assign(const char8_t* str, size32_t n)
+{
+    this->clear();
+	if(!str){
+		return *this;
+	}
+	if(npos == n){
+		n = cslen(str);
+	}
+	if(!n){
+		return *this;
+	}
+	int bufsize = code_convert<char>((char*)null, 0, str, n);
+	this->reserve(bufsize);
+	n = code_convert<char>(this->buffer(), bufsize, str, n);
+	this->endsize(n);
+	return *this;
+}
+
+template<>
+cstring<char>& cstring<char>::assign(const char16_t* str, size32_t n)
+{
+    this->clear();
+	if(!str){
+		return *this;
+	}
+	if(npos == n){
+		n = cslen(str);
+	}
+	if(!n){
+		return *this;
+	}
+	int bufsize = code_convert<char>((char*)null, 0, str, n);
+	this->reserve(bufsize);
+	n = code_convert<char>(this->buffer(), bufsize, str, n);
+	this->endsize(n);
+	return *this;
+}
+
+template<>
+cstring<char>& cstring<char>::assign(const char32_t* str, size32_t n)
+{
+    this->clear();
+	if(!str){
+		return *this;
+	}
+	if(npos == n){
+		n = cslen(str);
+	}
+	if(!n){
+		return *this;
+	}
+	int bufsize = code_convert<char>((char*)null, 0, str, n);
+	this->reserve(bufsize);
+	n = code_convert<char>(this->buffer(), bufsize, str, n);
+	this->endsize(n);
+	return *this;
+}
+
+//unicode string assign
+template<>
+cstring<char16_t>& cstring<char16_t>::assign(const char* str, size32_t n)
+{
+    this->clear();
+	if(!str){
+		return *this;
+	}
+	if(npos == n){
+		n = cslen(str);
+	}
+	if(!n){
+		return *this;
+	}
+	int bufsize = code_convert<char16_t>((char16_t*)null, 0, str, n);
+	this->reserve(bufsize);
+	n = code_convert<char16_t>(this->buffer(), bufsize, str, n);
+	this->endsize(n);
+	return *this;
+}
+template<>
+cstring<char16_t>& cstring<char16_t>::assign(const char16_t* str, size32_t n)
+{
+	this->_assign(str, n);
+	return *this;
+}
+
+//utf8 string::assign
+template<>
+cstring<char8_t>& cstring<char8_t>::assign(const char* str, size32_t n)
+{
+	return this->_assign(str, n);
+}
+
+template<>
+cstring<char8_t>& cstring<char8_t>::assign(const char16_t* str, size32_t n)
+{
+    this->clear();
+	if(!str){
+		return *this;
+	}
+	if(npos == n){
+		n = cslen(str);
+	}
+	if(!n){
+		return *this;
+	}
+	int bufsize = code_convert<char8_t>((char8_t*)null, 0, str, n);
+	this->reserve(bufsize);
+	n = code_convert<char8_t>(this->buffer(), bufsize, str, n);
+	this->endsize(n);
+	return *this;
+}
+
+template<>
+cstring<char8_t>& cstring<char8_t>::assign(const char32_t* str, size32_t n)
+{
+    this->clear();
+	if(!str){
+		return *this;
+	}
+	if(npos == n){
+		n = cslen(str);
+	}
+	if(!n){
+		return *this;
+	}
+	int bufsize = code_convert<char8_t>((char8_t*)null, 0, str, n);
+	this->reserve(bufsize);
+	n = code_convert<char8_t>(this->buffer(), bufsize, str, n);
+	this->endsize(n);
+	return *this;
+}
+
+template<>
+cstring<char32_t>& cstring<char32_t>::assign(const wchar_t* str, size32_t n)
+{
+    this->clear();
+	if(!str){
+		return *this;
+	}
+	if(npos == n){
+		n = cslen(str);
+	}
+	if(!n){
+		return *this;
+	}
+	int bufsize = code_convert<char32_t>((char32_t*)null, 0, str, n);
+	this->reserve(bufsize);
+	n = code_convert<char32_t>(this->buffer(), bufsize, str, n);
+	this->endsize(n);
+	return *this;
+}
+#endif
