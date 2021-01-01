@@ -1,4 +1,2 @@
 # cgl
-c++ graphics library
-
-随意写点啥……
+C++ general library
