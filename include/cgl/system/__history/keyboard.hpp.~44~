@@ -1,0 +1,155 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ keyboard.hpp
+
+ 2018-07-18 12:04:52
+
+*/
+#ifndef KEYBOARD_HPP_20180718120452
+#define KEYBOARD_HPP_20180718120452
+
+#include <cgl/public.h>
+#include <cgl/system/base.hpp>
+
+namespace cgl{
+
+//获取所有按键状态
+bool keyboard_state(char keyboard[127]);
+
+#ifdef CGL_PLATFORM_WINDOWS
+
+inline bool key_state(int key)
+{
+    return GetAsyncKeyState(key) & 0x8000;
+}
+
+//判断shift是否按下
+//is_key_shift_down()
+inline bool key_shift_down()
+{
+    return GetAsyncKeyState(VK_SHIFT) & 0x8000;
+    //GetKeyState(VK_SHIFT)&0x80
+}
+
+inline bool key_ctrl_down()
+{
+    return GetAsyncKeyState(VK_CONTROL) & 0x8000;
+}
+
+inline bool key_alt_down()
+{
+    return GetAsyncKeyState(VK_MENU) & 0x8000;
+}
+
+#else
+
+inline bool key_shift_down()
+{
+    return false;
+}
+
+inline bool key_ctrl_down()
+{
+    return false;
+}
+
+inline bool key_alt_down()
+{
+    return false;
+}
+
+#endif
+
+const char* key_name(int key)
+{
+    switch(key){
+    case key_back       : return "back";
+    case key_tab        : return "table";
+    case key_enter      : return "enter";
+    case key_shift      : return "shift";
+    case key_ctrl       : return "ctrl";
+    case key_alt        : return "alt";
+    case key_esc        : return "esc";
+    case key_space      : return "space";
+    case key_pageup     : return "pageUp";
+    case key_pagedown   : return "pageDown";
+    case key_end        : return "end";
+    case key_home       : return "home";
+    case key_left       : return "left";
+    case key_up         : return "up";
+    case key_right      : return "right";
+    case key_down       : return "down";
+    case key_snapshot   : return "snapshot";
+    case key_insert     : return "insert";
+    case key_delete     : return "del";
+
+    case key_f1         : return "f1";
+    case key_f2         : return "f2";
+    case key_f3         : return "f3";
+    case key_f4         : return "f4";
+    case key_f5         : return "f5";
+    case key_f6         : return "f6";
+    case key_f7         : return "f7";
+    case key_f8         : return "f8";
+    case key_f9         : return "f9";
+    case key_f10        : return "f10";
+    case key_f11        : return "f11";
+    case key_f12        : return "f12";
+    default:
+        return "A";
+    }
+}
+
+class keyboard_device
+{
+private:
+    char m_state[128];
+
+public:
+    bool get(int key)
+    {
+        return m_state[key];
+    }
+
+    void set(int key)
+    {
+        m_state[key] = 1;
+    }
+
+    void reset(int key)
+    {
+        m_state[key] = 0;
+    }
+
+    bool state(int key)
+    {
+        return key_state(key);
+    }
+
+    bool operator[](int key)const
+    {
+        return key_state(key);
+    }
+
+    bool shift_state()
+    {
+        return key_state(key_shift);
+    }
+
+    bool ctrl_state()
+    {
+        return key_state(key_ctrl);
+    }
+
+    bool alt_state()
+    {
+        return key_state(key_alt);
+    }
+};
+
+CGL_PUBLIC_DECLARE keyboard_device keyboard = keyboard_device();
+
+}//end namespace cgl
+
+#endif //KEYBOARD_HPP_20180718120452

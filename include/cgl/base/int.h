@@ -35,6 +35,8 @@
 
         typedef uint16_t uint_least16_t;
         typedef uint32_t uint_least32_t;
+    #else 
+        #include <stdint.h>
     #endif
 #else
     #ifdef __GNUC__

@@ -1,0 +1,91 @@
+
+class icon_t:public TCustomLabel
+{
+private:
+    bool bHotspot;//½¹µã
+    surface_t Image;
+public:
+    void CreateParams(TCreateParams Params)
+    {
+
+    }
+    __fastcall icon_t(TComponent* AOwner)
+        :TCustomLabel(AOwner)
+    {
+        this->Transparent = true;
+        this->AutoSize = false;
+        this->Font->Size = 10;
+        this->Font->Name = TEXT("Î¢ÈíÑÅºÚ");
+        this->Tag = 0;
+        bHotspot = false;
+
+        //this->OnMouseLeave = Label_MouseLeave;
+        //this->OnMouseEnter = Label_MouseEnter;
+        Alpha = 255;
+
+    }
+
+    String Icon;
+    String Command;
+    String Filename;
+    TPoint Position;
+    int    Alpha;
+
+__published:
+
+
+
+protected:
+    DYNAMIC void __fastcall DoDrawText(Types::TRect &Rect, int Flags)
+    {
+        if(bHotspot)
+        {
+            AlphaRect(Canvas->Handle, ClientRect, clBlue, 64);
+        }
+
+        if(!Icon.IsEmpty())
+        {
+            int n = this->Width/8;
+
+            if(Image.is_empty()) Image.open(Icon.c_str());
+
+            Image.paint(Canvas->Handle, n, n, Width - n*2, Width-n*2,
+                NULL, Alpha);
+        }
+
+        Gdiplus::Graphics g(this->Canvas->Handle);
+        draw_text(g,
+            WideString(Caption).c_bstr(), WideString(Caption).Length(),
+                20, Height-20, L"Î¢ÈíÑÅºÚ",  this->Font->Size);
+
+    }
+
+    void __fastcall WndProc(Messages::TMessage &Message)
+    {
+
+        switch(Message.Msg)
+        {
+        case WM_ERASEBKGND:
+            Message.Result = 1;
+            break;
+        case 45075://MOUSEENTER
+            bHotspot = true;
+            this->Repaint();
+            TCustomLabel::WndProc(Message);
+            break;
+        case 45076://MOUSELEAVE
+            bHotspot = false;
+            this->Repaint();
+            TCustomLabel::WndProc(Message);
+            break;
+        case 45066://MOUSEMOVE
+            TCustomLabel::WndProc(Message);
+            break;
+        default:
+            TCustomLabel::WndProc(Message);
+            break;
+        }//*/
+    }
+
+
+};

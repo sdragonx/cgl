@@ -43,13 +43,14 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 
+/*
 #if !defined(CGL_PLATFORM_ANDROID)//clang ??
 
-#define _MCW_DN     0x03000000  /* Denormal control */
-#define _MCW_EM     0x0008001F  /* Error masks */
-#define _MCW_IC     0x00040000  /* Infinity */
-#define _MCW_RC     0x00000300  /* Rounding */
-#define _MCW_PC     0x00030000  /* Precision */
+#define _MCW_DN     0x03000000  // Denormal control
+#define _MCW_EM     0x0008001F  // Error masks
+#define _MCW_IC     0x00040000  // Infinity
+#define _MCW_RC     0x00000300  // Rounding
+#define _MCW_PC     0x00030000  // Precision
 
 #define _RC_NEAR    0x00000000
 #define _PC_24      0x00020000
@@ -78,6 +79,7 @@ errno_t __cdecl _controlfp_s(unsigned int *_CurrentState, unsigned int _NewValue
 #endif
 
 #endif//!defined(CGL_PLATFORM_ANDROID)
+*/
 
 #endif//CGL_PLATFORM_GNUC
 
@@ -93,6 +95,8 @@ void fpe_disable()
 }
 #endif
 
+
+/*
 #ifdef __android__
 
 #if __ANDROID_API__ >= __ANDROID_API_L__ || defined(__i386__)
@@ -100,19 +104,35 @@ void fpe_disable()
 #endif
 
 #endif
+*/
 
 namespace cgl{
+
+/*
+
+#if defined(CGL_PLATFORM_MSVC)
+inline int __cgl_controlfp(int NewValue, int Mask)
+{
+    unsigned int state = 0;
+    return _controlfp_s(&state, NewValue, Mask);
+}
+#elif defined(CGL_PLATFORM_CBUILDER)
+inline int __cgl_controlfp(int NewValue, int Mask)
+{
+    return _controlfp(NewValue, Mask);
+}
+#endif
 
 #ifdef MCW_EM
 void controlfp_def()
 {
-    _controlfp( PC_24, MCW_PC );
-    _controlfp( RC_NEAR, MCW_RC );
+    __cgl_controlfp( PC_24, MCW_PC );
+    __cgl_controlfp( RC_NEAR, MCW_RC );
 }
 
 bool check_controlfp()
 {
-    return ((_controlfp(0,0) & MCW_PC) == PC_24) && ((_controlfp(0, 0) & MCW_RC) == RC_NEAR);
+    return ((__cgl_controlfp(0,0) & MCW_PC) == PC_24) && ((__cgl_controlfp(0, 0) & MCW_RC) == RC_NEAR);
 }
 #endif
 
@@ -129,6 +149,7 @@ void fpe_enable()
 void fpe_disable()
 {
 }
+*/
 
 /*
 int32_t float_to_int(float f)
@@ -144,7 +165,7 @@ int32_t float_to_int(float f)
 
 double float_magic_number(int bits)
 {
-  return 1.5 * STD::pow(2.0, double(bits));
+  return 1.5 * pow(2.0, double(bits));
 }
 
 将64位浮点数转换为32位整数

@@ -7,103 +7,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-//#include "llvm/Support/ConvertUTF.h"
-//#include "llvm/Support/SwapByteOrder.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/ConvertUTF.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/SwapByteOrder.h"
 #include <string>
 #include <vector>
 
-
-/*************************************************************************/
-/* Below are LLVM-specific wrappers of the functions above. */
-
-#ifdef CONVERT_UTF_WRAPPER
-
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-
-//namespace llvm {
-
-/**
- * Convert an UTF8 StringRef to UTF8, UTF16, or UTF32 depending on
- * WideCharWidth. The converted data is written to ResultPtr, which needs to
- * point to at least WideCharWidth * (Source.Size() + 1) bytes. On success,
- * ResultPtr will point one after the end of the copied string. On failure,
- * ResultPtr will not be changed, and ErrorPtr will be set to the location of
- * the first character which could not be converted.
- * \return true on success.
- */
-bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
-                       char *&ResultPtr, const UTF8 *&ErrorPtr);
-
-/**
- * Convert an Unicode code point to UTF8 sequence.
- *
- * \param Source a Unicode code point.
- * \param [in,out] ResultPtr pointer to the output buffer, needs to be at least
- * \c UNI_MAX_UTF8_BYTES_PER_CODE_POINT bytes.  On success \c ResultPtr is
- * updated one past end of the converted sequence.
- *
- * \returns true on success.
- */
-bool ConvertCodePointToUTF8(unsigned Source, char *&ResultPtr);
-
-/**
- * Convert the first UTF8 sequence in the given source buffer to a UTF32
- * code point.
- *
- * \param [in,out] source A pointer to the source buffer. If the conversion
- * succeeds, this pointer will be updated to point to the byte just past the
- * end of the converted sequence.
- * \param sourceEnd A pointer just past the end of the source buffer.
- * \param [out] target The converted code
- * \param flags Whether the conversion is strict or lenient.
- *
- * \returns conversionOK on success
- *
- * \sa ConvertUTF8toUTF32
- */
-static inline ConversionResult convertUTF8Sequence(const UTF8 **source,
-                                                   const UTF8 *sourceEnd,
-                                                   UTF32 *target,
-                                                   ConversionFlags flags) {
-  if (*source == sourceEnd)
-    return sourceExhausted;
-  unsigned size = getNumBytesForUTF8(**source);
-  if ((ptrdiff_t)size > sourceEnd - *source)
-    return sourceExhausted;
-  return ConvertUTF8toUTF32(source, *source + size, &target, target + 1, flags);
-}
-
-/**
- * Returns true if a blob of text starts with a UTF-16 big or little endian byte
- * order mark.
- */
-bool hasUTF16ByteOrderMark(ArrayRef<char> SrcBytes);
-
-/**
- * Converts a stream of raw bytes assumed to be UTF16 into a UTF8 std::string.
- *
- * \param [in] SrcBytes A buffer of what is assumed to be UTF-16 encoded text.
- * \param [out] Out Converted UTF-8 is stored here on success.
- * \returns true on success
- */
-bool convertUTF16ToUTF8String(ArrayRef<char> SrcBytes, std::string &Out);
-
-/**
- * Converts a UTF-8 string into a UTF-16 string with native endianness.
- *
- * \returns true on success
- */
-bool convertUTF8ToUTF16String(StringRef SrcUTF8,
-                              SmallVectorImpl<UTF16> &DstUTF16);
-
-//} /* end namespace llvm */
-
-#endif//CONVERT_UTF_WRAPPER
-
 namespace llvm {
-
-#include "ConvertUTF.c"
 
 bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
                        char *&ResultPtr, const UTF8 *&ErrorPtr) {
@@ -127,7 +39,7 @@ bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
     ConversionFlags flags = strictConversion;
     result = ConvertUTF8toUTF16(
         &sourceStart, sourceStart + Source.size(),
-        &targetStart, targetStart + 2*Source.size(), flags);
+        &targetStart, targetStart + Source.size(), flags);
     if (result == conversionOK)
       ResultPtr = reinterpret_cast<char*>(targetStart);
     else
@@ -140,7 +52,7 @@ bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
     ConversionFlags flags = strictConversion;
     result = ConvertUTF8toUTF32(
         &sourceStart, sourceStart + Source.size(),
-        &targetStart, targetStart + 4*Source.size(), flags);
+        &targetStart, targetStart + Source.size(), flags);
     if (result == conversionOK)
       ResultPtr = reinterpret_cast<char*>(targetStart);
     else
@@ -221,6 +133,13 @@ bool convertUTF16ToUTF8String(ArrayRef<char> SrcBytes, std::string &Out) {
   return true;
 }
 
+bool convertUTF16ToUTF8String(ArrayRef<UTF16> Src, std::string &Out)
+{
+  return convertUTF16ToUTF8String(
+      llvm::ArrayRef<char>(reinterpret_cast<const char *>(Src.data()),
+      Src.size() * sizeof(UTF16)), Out);
+}
+
 bool convertUTF8ToUTF16String(StringRef SrcUTF8,
                               SmallVectorImpl<UTF16> &DstUTF16) {
   assert(DstUTF16.empty());
@@ -257,6 +176,75 @@ bool convertUTF8ToUTF16String(StringRef SrcUTF8,
   DstUTF16.push_back(0);
   DstUTF16.pop_back();
   return true;
+}
+
+static_assert(sizeof(wchar_t) == 1 || sizeof(wchar_t) == 2 ||
+                  sizeof(wchar_t) == 4,
+              "Expected wchar_t to be 1, 2, or 4 bytes");
+
+template <typename TResult>
+static inline bool ConvertUTF8toWideInternal(llvm::StringRef Source,
+                                             TResult &Result) {
+  // Even in the case of UTF-16, the number of bytes in a UTF-8 string is
+  // at least as large as the number of elements in the resulting wide
+  // string, because surrogate pairs take at least 4 bytes in UTF-8.
+  Result.resize(Source.size() + 1);
+  char *ResultPtr = reinterpret_cast<char *>(&Result[0]);
+  const UTF8 *ErrorPtr;
+  if (!ConvertUTF8toWide(sizeof(wchar_t), Source, ResultPtr, ErrorPtr)) {
+    Result.clear();
+    return false;
+  }
+  Result.resize(reinterpret_cast<wchar_t *>(ResultPtr) - &Result[0]);
+  return true;
+}
+
+bool ConvertUTF8toWide(llvm::StringRef Source, std::wstring &Result) {
+  return ConvertUTF8toWideInternal(Source, Result);
+}
+
+bool ConvertUTF8toWide(const char *Source, std::wstring &Result) {
+  if (!Source) {
+    Result.clear();
+    return true;
+  }
+  return ConvertUTF8toWide(llvm::StringRef(Source), Result);
+}
+
+bool convertWideToUTF8(const std::wstring &Source, std::string &Result) {
+  if (sizeof(wchar_t) == 1) {
+    const UTF8 *Start = reinterpret_cast<const UTF8 *>(Source.data());
+    const UTF8 *End =
+        reinterpret_cast<const UTF8 *>(Source.data() + Source.size());
+    if (!isLegalUTF8String(&Start, End))
+      return false;
+    Result.resize(Source.size());
+    memcpy(&Result[0], Source.data(), Source.size());
+    return true;
+  } else if (sizeof(wchar_t) == 2) {
+    return convertUTF16ToUTF8String(
+        llvm::ArrayRef<UTF16>(reinterpret_cast<const UTF16 *>(Source.data()),
+                              Source.size()),
+        Result);
+  } else if (sizeof(wchar_t) == 4) {
+    const UTF32 *Start = reinterpret_cast<const UTF32 *>(Source.data());
+    const UTF32 *End =
+        reinterpret_cast<const UTF32 *>(Source.data() + Source.size());
+    Result.resize(UNI_MAX_UTF8_BYTES_PER_CODE_POINT * Source.size());
+    UTF8 *ResultPtr = reinterpret_cast<UTF8 *>(&Result[0]);
+    UTF8 *ResultEnd = reinterpret_cast<UTF8 *>(&Result[0] + Result.size());
+    if (ConvertUTF32toUTF8(&Start, End, &ResultPtr, ResultEnd,
+                           strictConversion) == conversionOK) {
+      Result.resize(reinterpret_cast<char *>(ResultPtr) - &Result[0]);
+      return true;
+    } else {
+      Result.clear();
+      return false;
+    }
+  } else {
+    llvm_unreachable(
+        "Control should never reach this point; see static_assert further up");
+  }
 }
 
 } // end namespace llvm

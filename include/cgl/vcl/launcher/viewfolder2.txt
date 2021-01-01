@@ -1,0 +1,131 @@
+
+void __fastcall TfrmShellView::ViewFolder(String Path)
+{
+	SHFILEINFO fi = {0};
+	HANDLE hfind;
+	WIN32_FIND_DATA wfd = {0};
+	UINT Flags = SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN;
+	//DWORD attrib = 0;
+
+	if(*Path.LastChar()!=TEXT('\\'))Path+=TEXT('\\');
+	hfind = FindFirstFile((Path+TEXT('*')).c_str(), &wfd);
+	if(hfind == INVALID_HANDLE_VALUE)
+	{
+		ShowMessage(TEXT("ShellView 文件查找失败！"));
+		return ;
+	}
+	#if 0
+	auto_ptr<TStringList> sl(new TStringList);
+	auto_ptr<TIniFile> ini(new TIniFile(CONFIG_FILE));
+	sl->Delimiter = ',';
+	sl->DelimitedText = ini->ReadString(CONFIG_MAIN, L"icolist", STRING_NULL);
+	//int x = 0, y = 0;//ICON_HEIGHT/2;
+	#endif
+	bool bc = false;
+	do
+	{
+		_wcslwr(wfd.cFileName);
+		if(!wcscmp(wfd.cFileName, L".") || !wcscmp(wfd.cFileName, L".."))
+			continue;
+
+		//ShowMessage(wfd.cFileName);
+
+		#if 0
+		bc = false;
+		for(int i=0; i<sl->Count; ++i)
+		{
+			if(wcsstr(wfd.cFileName, sl->Strings[i].c_str()))
+			{
+				bc = true;
+				break;
+			}
+		}
+		//if(bc)continue;
+		#endif
+
+		String fullpath = Path + wfd.cFileName;
+
+		TWindow *Icon = new TWindow(this);
+		Icon->Parent = pnlView;
+		Icon->Size = 32;
+		Icon->mode = 0;
+
+		//ShowMessage(fullpath);
+		SHGetFileInfo(fullpath.c_str(), 0, &fi, sizeof(SHFILEINFO),
+			SHGFI_DISPLAYNAME|SHGFI_SYSICONINDEX);
+
+		Icon->Caption = fi.szDisplayName;
+		Icon->id = fi.iIcon;
+		Icon->image.open_image(STRING_NULL, fi.iIcon, 32);
+		//Icon->PopupMenu = frmMain->mnuIconMenu;
+
+		Icon->shell = fullpath;
+		Icon->show_title = true;
+		IconList.push_back(Icon);
+		//Application->ProcessMessages();
+		//Sleep(1);
+	}while(FindNextFile(hfind, &wfd));//end while
+}
+
+void __fastcall TfrmShellView::ViewFolder(LPITEMIDLIST lpPIDL)
+{
+	::ShellView(IconList, lpPIDL, pnlView, 32);
+	return ;
+
+	#if 0
+	TCHAR path[MAX_PATH] = {0};
+	SHGetPathFromIDList(lpPIDL, path);
+	ViewFolder(path);
+	#endif
+
+	_di_IShellFolder desktop;
+    _di_IShellFolder ShellFolder;
+    PItemIDList ID;
+    _di_IEnumIDList EnumList;
+    unsigned long NumIDs;
+    TCursor SaveCursor;
+    SHFILEINFO fi = {0};
+    WIN32_FIND_DATA wfd = {0};
+    UINT Flags = SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN;
+
+    SHGetDesktopFolder(&desktop);
+    if(FAILED(desktop->BindToObject(lpPIDL, NULL, IID_IShellFolder, (void**)&ShellFolder)))
+    {
+    	SHGetDesktopFolder(&ShellFolder);
+    }
+
+    SaveCursor = Screen->Cursor;
+    try
+    {
+        Screen->Cursor = crHourGlass;
+        OleCheck( ShellFolder->EnumObjects(NULL, Flags, &EnumList));
+        while (EnumList->Next(1, &ID, &NumIDs) == S_OK)
+        {
+            PItemIDList tmpPIDL = PIDL_Combin(lpPIDL, ID);
+            SHGetFileInfo((TCHAR*)tmpPIDL, 0, &fi, sizeof(fi),
+				SHGFI_PIDL|SHGFI_DISPLAYNAME|SHGFI_SYSICONINDEX);
+
+            TWindow *Icon = new TWindow(this);
+			Icon->Parent = this;
+			Icon->Size = 32;
+			Icon->mode = 0;
+			Icon->show_title = true;
+
+			Icon->Caption = fi.szDisplayName;
+			Icon->image.open_image(STRING_NULL, fi.iIcon, 32);
+
+			IconList.push_back(Icon);
+
+			//String fname = GetDisplayName(ShellFolder, ID, 1);
+
+            PIDL_Free(tmpPIDL);
+        }//end while
+    }
+    __finally
+    {
+        Screen->Cursor = SaveCursor;
+    }
+
+	//创建桌面快捷方式
+	//CreateShortcutToURL(L"http://hao.gzkuwo.cn/", (String(path)+L"\\网站导航.url").c_str());
+}

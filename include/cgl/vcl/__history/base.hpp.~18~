@@ -1,0 +1,64 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ vcl_base.hpp
+
+ 2018-09-07 13:56:26
+
+*/
+#ifndef VCL_BASE_HPP_20180907135626
+#define VCL_BASE_HPP_20180907135626
+
+#include <cgl/public.h>
+#include <cgl/graphics/color.hpp>
+
+#ifndef CGL_PLATFORM_CBUILDER
+#error "compiler is not c++ builder"
+#endif
+
+#ifndef VCL_FULL
+#pragma message "VCL_FULL not defined"
+#endif
+
+#include <vcl.h>
+#include <ComCtrls.hpp>
+
+extern void print(String);
+
+namespace cgl{
+namespace vcl{
+
+typedef void (*vcl_stdproc)(TObject*);
+
+//批处理子组件
+void for_each(TWinControl* obj, TNotifyEvent function, bool process_child = false)
+{
+    for(int i=0; i<obj->ControlCount; ++i){
+        function(obj->Controls[i]);
+        if(process_child){
+            TWinControl* winobj = dynamic_cast<TWinControl*>(obj->Controls[i]);
+            if(winobj){
+                for_each(winobj, function, process_child);
+            }
+        }
+    }
+}
+
+void for_each(TWinControl* obj, vcl_stdproc function, bool process_child = false)
+{
+    for(int i=0; i<obj->ControlCount; ++i){
+        function(obj->Controls[i]);
+        if(process_child){
+            TWinControl* subobj = dynamic_cast<TWinControl*>(obj->Controls[i]);
+            if(subobj){
+                for_each(subobj, function, process_child);
+            }
+        }
+    }
+}
+
+
+}//end namespace vcl
+}//end namespace cgl
+
+#endif //VCL_BASE_HPP_20180907135626

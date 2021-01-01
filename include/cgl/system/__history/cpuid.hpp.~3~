@@ -1,0 +1,103 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ cpuid.hpp
+
+ 2020-04-29 11:21:29
+
+*/
+#ifndef CPUID_HPP_20200429112129
+#define CPUID_HPP_20200429112129
+
+#include <cgl/public.h>
+
+namespace cgl{
+//namespace system{
+
+void cpuid(int id, uint32_t& a, uint32_t& b, uint32_t& c, uint32_t& d)
+{
+    uint32_t x, y, z, w;
+    #if defined(_WIN32) && !defined(__GNUC__)
+        __asm{
+            mov eax,id  //将参数赋值给eax
+            cpuid       //执行cpuid指令
+            mov x,eax   //寄存器取值
+            mov y,ebx
+            mov z,ecx
+            mov w,edx
+        }
+
+    #elif defined(__GNUC__)
+        __asm__(
+            "cpuid"
+            :"=a"(a),
+            "=b"(b),
+            "=c"(c),
+            "=d"(d)
+            :"a"(id)
+        );
+    #endif
+
+    a = x;
+    b = y;
+    c = z;
+    d = w;
+}
+
+inline void cpuid(int id, uint32_t info[4])
+{
+    cpuid(id, info[0], info[1], info[2], info[3]);
+}
+
+inline void cpuid(int id, __x128& info)
+{
+    cpuid(id, info.idata);
+}
+
+/*	在Intel Pentium以上级别的CPU中，有一个称为“时间戳（Time Stamp）”的部件，
+	它以64位无符号整型数的格式，记录了自CPU上电以来所经过的时钟周期数。
+	由于目前的CPU主频都非常高，因此这个部件可以达到纳秒级的计时精度。
+	这个精确性是上述两种方法所无法比拟的。
+	在Pentium以上的CPU中，提供了一条机器指令RDTSC（Read Time Stamp Counter）
+	来读取这个时间戳的数字，并将其保存在EDX:EAX寄存器对中
+*/
+//获取CPU频率,单位: MHZ
+int cpu_freq()
+{
+	int start,over;
+	_asm
+	{
+		RDTSC
+		mov start,eax
+	}
+	Sleep(50);
+	_asm
+	{
+		RDTSC
+		mov over,eax
+	}
+	return (over-start)/50000;
+}
+
+/*把eax = 0作为输入参数，可以得到CPU的制造商信息。
+  cpuid指令执行以后，会返回一个12字符的制造商信息，
+  前四个字符的ASC码按低位到高位放在ebx，中间四个放在edx，最后四个字符放在ecx。
+*/
+//manufacturer
+const char* cpu_manu()   //获取制造商信息
+{
+	static char ID[13] = {0};
+    __x128 info = {0};
+
+    cpuid(0, info);
+	memcpy(ID + 0, &info.ebx, 4); //制造商信息复制到数组
+	memcpy(ID + 4, &info.edx, 4);
+	memcpy(ID + 8, &info.ecx, 4);
+
+	return ID;
+}
+
+//}//end namespace system
+}//end namespace cgl
+
+#endif //CPUID_HPP_20200429112129

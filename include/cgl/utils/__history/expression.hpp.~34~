@@ -1,0 +1,279 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ expression.hpp
+
+ 2020-07-05 00:02:29
+
+ 数学表达式类
+
+*/
+#ifndef EXPRESSION_HPP_20200705000229
+#define EXPRESSION_HPP_20200705000229
+
+#include <cgl/public.h>
+
+#include <vector>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+namespace cgl{
+
+//返回运算符优先级
+int priority(int n)
+{
+    switch(n&0xFF)
+    {
+    case '(':
+    case ')':
+        return 1;
+    case '+':
+    case '-':
+        return 2;
+    case '*':
+    case '/':
+    case '%':
+        return 3;
+    case '^':
+        return 4;
+    default:
+        return n;
+    }
+}
+
+//判断运算符优先级
+bool compare(int op1, int op2)
+{
+    return priority(op1) >= priority(op2);
+}
+
+//计算数值 a op b
+double compute(double a, double b, int op)
+{
+    switch(op){
+    case '+':
+        a += b;
+        break;
+    case '-':
+        a -= b;
+        break;
+    case '*':
+        a *= b;
+        break;
+    case '/':
+        if(b == 0)
+            cout<<"除数=0"<<endl;
+        else
+            a /= b;
+        break;
+    case '%':
+        a = fmod(a, b);
+        break;
+    case '^':
+        a = pow(a, b);
+        break;
+    default:
+        return 0;
+    }
+    return a;
+}
+
+struct subexp
+{
+    int type;
+    string value;
+};
+
+class expression
+{
+public:
+    std::vector<double>  values;    //数值堆栈
+    std::vector<int>     operators; //操作符堆栈
+    double AX, BX;  //数值寄存器
+    int OP;         //操作符寄存器
+
+    expression()
+    {
+    }
+
+    //解析表达式
+    int parse(vector<subexp>& stack, const string& str)
+    {
+        size_t begin = 0;
+        size_t end = 0;
+
+        char ch;
+        subexp e;
+
+        for( ; end < str.length(); ){
+            ch = str[end];
+            switch(ch){
+            case ' ':
+                if(begin == end){
+                }
+                else{
+                    e.type = 0;
+                    e.value = str.substr(begin, end - begin);
+                    stack.push_back(e);
+                }
+                begin = ++end;
+                break;
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+            case '%':
+            case '(':
+            case ')':
+                if(begin != end){
+                    e.type = 0;
+                    e.value = str.substr(begin, end - begin);
+                    stack.push_back(e);
+                 }
+                e.type = ch;
+                e.value.clear();
+                stack.push_back(e);
+                begin = ++end;
+                break;
+            default:
+                ++end;
+                break;
+            }
+        }
+
+        //这里不会是符号
+        if(begin != end){
+            e.type = 0;
+            e.value = str.substr(begin, end - begin);
+            stack.push_back(e);
+        }
+        return 0;
+    }
+
+    double calc(const vector<subexp> &exp)
+    {
+        values.clear();
+        operators.clear();
+
+        AX = BX = 0;
+        OP = 0;
+
+        char ch;
+
+        //操作符栈压入一个0
+        operators.push_back(0);
+
+        for(size_t i=0; i<exp.size(); ++i){
+            ch = exp[i].type;
+            switch(ch){
+            case 0://数值
+                values.push_back(to_double(exp[i].value));
+                break;
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+            case '%':
+                //如果操作符栈顶不为0，比较操作符优先级
+                if(operators.back() && compare(operators.back(), exp[i].type)){
+                    if (!calc()) {
+                        return 0.0;
+                    }
+                }
+                operators.push_back(ch);
+                break;
+            case '(':
+                operators.push_back(ch);
+                break;
+            case ')':
+                while(operators.back()!='('){
+                    if (!calc()) {
+                        return 0.0;
+                    }
+                }
+                if(operators.empty()){
+                    return 0.0;
+                }
+                operators.pop_back();
+                break;
+            default:
+                break;
+
+            }
+        }
+
+        //最后计算所有堆栈中的数据
+        //顺序执行
+        while(operators.back()){
+            if (!calc()) {
+                return 0.0;
+            }
+        }
+
+        //返回值栈顶
+        return values.back();
+    }
+
+private:
+    double to_double(const string& str)
+    {
+        stringstream stm(str);
+        double n;
+        stm>>n;
+        return n;
+    }
+
+    void push_value(int value)
+    {
+        values.push_back(value);
+    }
+
+    void push_op(int op)
+    {
+        operators.push_back(op);
+    }
+
+    //弹出一组数据到寄存器
+    bool pop()
+    {
+        if (operators.empty()) {
+            return false;
+        }
+        OP = operators.back();
+        operators.pop_back();
+
+        if (values.empty()) {
+            return false;
+        }
+        BX = values.back();
+        values.pop_back();
+        if (values.empty()) {
+            return false;
+        }
+        AX = values.back();
+        values.pop_back();
+
+        return true;
+    }
+
+    //计算过程
+    bool calc()
+    {
+        //弹出一组数值
+        if (!pop()) {
+            return false;
+        }
+        //计算
+        AX = compute(AX, BX, OP);
+        //结果压入数值栈
+        values.push_back(AX);
+        //寄存器清零
+        AX = BX = OP = 0;
+        return true;
+    }
+};
+
+}//end namespace cgl
+
+#endif //EXPRESSION_HPP_20200705000229

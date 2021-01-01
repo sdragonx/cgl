@@ -1,0 +1,56 @@
+if (((buf[0] == 0x49 && buf[1] == 0x49 && buf[2] == 0x2A && buf[3] == 0x0) ||
+(buf[0] == 0x4D && buf[1] == 0x4D && buf[2] == 0x0 && buf[3] == 0x2A)) && buf[8] == 0x43 && buf[9] == 0x52) {
+		type = "cr2";
+		mime = "image/x-canon-cr2";
+		return true;
+	}
+
+	if (buf[0] == 0x49 && buf[1] == 0x49 && buf[2] == 0xBC) {
+		type = "jxr";
+		mime = "image/vnd.ms-photo";
+		return true;
+	}
+
+    // needs to be before `ogg` check
+    opus是一种声音编码格式，Opus的前身是celt编码器。是由IETF开发，适用于网络上的实时声音传输，标准格式为RFC 6716。
+
+    if (buf[28] == 0x4F && buf[29] == 0x70 && buf[30] == 0x75 && buf[31] == 0x73 && buf[32] == 0x48 && buf[33] == 0x65 && buf[34] == 0x61 && buf[35] == 0x64) {
+        type = "opus";
+        mime = "audio/opus";
+        return true;
+    }
+
+       if (buf[0] == 0x23 && buf[1] == 0x21 && buf[2] == 0x41 && buf[3] == 0x4D && buf[4] == 0x52 && buf[5] == 0x0A) {
+        type = "amr";
+        mime = "audio/amr";
+        return true;
+    }
+
+
+    if (
+        (buf[0] == 0x77 && buf[1] == 0x4F && buf[2] == 0x46 && buf[3] == 0x46) &&
+        (
+            (buf[4] == 0x00 && buf[5] == 0x01 && buf[6] == 0x00 && buf[7] == 0x00) ||
+            (buf[4] == 0x4F && buf[5] == 0x54 && buf[6] == 0x54 && buf[7] == 0x4F)
+        )
+    ) {
+        type = "woff";
+        mime = "application/font-woff";
+        return true;
+    }
+0x
+    if (
+        (buf[0] == 0x77 && buf[1] == 0x4F && buf[2] == 0x46 && buf[3] == 0x32) &&
+        (
+            (buf[4] == 0x00 && buf[5] == 0x01 && buf[6] == 0x00 && buf[7] == 0x00) ||
+            (buf[4] == 0x4F && buf[5] == 0x54 && buf[6] == 0x54 && buf[7] == 0x4F)
+        )
+    ) {
+        type = "woff2";
+        mime = "application/font-woff";
+        return true;
+    }
+
+
+    return false;
+};

@@ -1,0 +1,462 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ clipboard.hpp
+
+ 2018-06-01 14:58:49
+
+*/
+#ifndef CLIPBOARD_HPP_20180601145849
+#define CLIPBOARD_HPP_20180601145849
+
+#include <cgl/public.h>
+#ifdef CGL_PLATFORM_WINDOWS
+
+#include <windows.h>
+#include <shlobj.h>
+
+#endif
+
+
+namespace cgl{
+
+
+//剪切板格式
+enum{
+    //CGL_NULL
+    CGL_TEXT = 1,
+    CGL_UNICODETEXT,
+    CGL_BITMAP,
+    CGL_FILENAME,    //copy or move??
+    CGL_HTML
+};
+
+
+namespace system{
+
+#ifdef CGL_PLATFORM_WINDOWS
+
+#if 0
+//---------------------------------------------------------------------------
+//winuser.h
+/*
+ * Predefined Clipboard Formats
+ */
+#define CF_TEXT             1
+#define CF_BITMAP           2
+#define CF_METAFILEPICT     3
+#define CF_SYLK             4
+#define CF_DIF              5
+#define CF_TIFF             6
+#define CF_OEMTEXT          7
+#define CF_DIB              8
+#define CF_PALETTE          9
+#define CF_PENDATA          10
+#define CF_RIFF             11
+#define CF_WAVE             12
+#define CF_UNICODETEXT      13
+#define CF_ENHMETAFILE      14
+#if(WINVER >= 0x0400)
+#define CF_HDROP            15
+#define CF_LOCALE           16
+#endif /* WINVER >= 0x0400 */
+#if(WINVER >= 0x0500)
+#define CF_DIBV5            17
+#endif /* WINVER >= 0x0500 */
+
+#if(WINVER >= 0x0500)
+#define CF_MAX              18
+#elif(WINVER >= 0x0400)
+#define CF_MAX              17
+#else
+#define CF_MAX              15
+#endif
+
+#define CF_OWNERDISPLAY     0x0080
+#define CF_DSPTEXT          0x0081
+#define CF_DSPBITMAP        0x0082
+#define CF_DSPMETAFILEPICT  0x0083
+#define CF_DSPENHMETAFILE   0x008E
+
+/*
+ * "Private" formats don't get GlobalFree()'d
+ */
+#define CF_PRIVATEFIRST     0x0200
+#define CF_PRIVATELAST      0x02FF
+
+/*
+ * "GDIOBJ" formats do get DeleteObject()'d
+ */
+#define CF_GDIOBJFIRST      0x0300
+#define CF_GDIOBJLAST       0x03FF
+
+//---------------------------------------------------------------------------
+//shlobj.h
+
+#define CFSTR_SHELLIDLIST                   TEXT("Shell IDList Array")                  // CF_IDLIST
+#define CFSTR_SHELLIDLISTOFFSET             TEXT("Shell Object Offsets")                // CF_OBJECTPOSITIONS
+#define CFSTR_NETRESOURCES                  TEXT("Net Resource")                        // CF_NETRESOURCE
+#define CFSTR_FILEDESCRIPTORA               TEXT("FileGroupDescriptor")                 // CF_FILEGROUPDESCRIPTORA
+#define CFSTR_FILEDESCRIPTORW               TEXT("FileGroupDescriptorW")                // CF_FILEGROUPDESCRIPTORW
+#define CFSTR_FILECONTENTS                  TEXT("FileContents")                        // CF_FILECONTENTS
+#define CFSTR_FILENAMEA                     TEXT("FileName")                            // CF_FILENAMEA
+#define CFSTR_FILENAMEW                     TEXT("FileNameW")                           // CF_FILENAMEW
+#define CFSTR_PRINTERGROUP                  TEXT("PrinterFriendlyName")                 // CF_PRINTERS
+#define CFSTR_FILENAMEMAPA                  TEXT("FileNameMap")                         // CF_FILENAMEMAPA
+#define CFSTR_FILENAMEMAPW                  TEXT("FileNameMapW")                        // CF_FILENAMEMAPW
+#define CFSTR_SHELLURL                      TEXT("UniformResourceLocator")
+#define CFSTR_INETURLA                      CFSTR_SHELLURL
+#define CFSTR_INETURLW                      TEXT("UniformResourceLocatorW")
+#define CFSTR_PREFERREDDROPEFFECT           TEXT("Preferred DropEffect")
+#define CFSTR_PERFORMEDDROPEFFECT           TEXT("Performed DropEffect")
+#define CFSTR_PASTESUCCEEDED                TEXT("Paste Succeeded")
+#define CFSTR_INDRAGLOOP                    TEXT("InShellDragLoop")
+#define CFSTR_MOUNTEDVOLUME                 TEXT("MountedVolume")
+#define CFSTR_PERSISTEDDATAOBJECT           TEXT("PersistedDataObject")
+#define CFSTR_TARGETCLSID                   TEXT("TargetCLSID")                         // HGLOBAL with a CLSID of the drop target
+#define CFSTR_LOGICALPERFORMEDDROPEFFECT    TEXT("Logical Performed DropEffect")
+#define CFSTR_AUTOPLAY_SHELLIDLISTS         TEXT("Autoplay Enumerated IDList Array")    // (HGLOBAL with LPIDA)
+#define CFSTR_UNTRUSTEDDRAGDROP             TEXT("UntrustedDragDrop")                   //  DWORD
+#define CFSTR_FILE_ATTRIBUTES_ARRAY         TEXT("File Attributes Array")               // (FILE_ATTRIBUTES_ARRAY format on HGLOBAL)
+#define CFSTR_INVOKECOMMAND_DROPPARAM       TEXT("InvokeCommand DropParam")             // (HGLOBAL with LPWSTR)
+#define CFSTR_SHELLDROPHANDLER              TEXT("DropHandlerCLSID")                    // (HGLOBAL with CLSID of drop handler)
+#define CFSTR_DROPDESCRIPTION               TEXT("DropDescription")                     // (HGLOBAL with DROPDESCRIPTION)
+
+#ifdef UNICODE
+#define CFSTR_FILEDESCRIPTOR    CFSTR_FILEDESCRIPTORW
+#define CFSTR_FILENAME          CFSTR_FILENAMEW
+#define CFSTR_FILENAMEMAP       CFSTR_FILENAMEMAPW
+#define CFSTR_INETURL           CFSTR_INETURLW
+#else
+#define CFSTR_FILEDESCRIPTOR    CFSTR_FILEDESCRIPTORA
+#define CFSTR_FILENAME          CFSTR_FILENAMEA
+#define CFSTR_FILENAMEMAP       CFSTR_FILENAMEMAPA
+#define CFSTR_INETURL           CFSTR_INETURLA
+#endif
+
+#endif//0
+
+#ifndef CFSTR_HTML
+#define CFSTR_HTML TEXT("HTML Format")
+#endif
+
+#ifndef CFSTR_DRAGIMAGEBITS
+#define CFSTR_DRAGIMAGEBITS TEXT("DragImageBits")
+#endif
+
+//get clipboard format code
+const DWORD CF_DRAGIMAGEBITS = RegisterClipboardFormat(CFSTR_DRAGIMAGEBITS);
+const DWORD CF_IDLIST = RegisterClipboardFormat(CFSTR_SHELLIDLIST);
+//const DWORD CF_FILEGROUPDESCRIPTORA = RegisterClipboardFormat(CFSTR_FILEDESCRIPTORA);
+//const DWORD CF_FILEGROUPDESCRIPTORW = RegisterClipboardFormat(CFSTR_FILEDESCRIPTORW);
+//const DWORD CF_FILECONTENTS = RegisterClipboardFormat(CFSTR_FILECONTENTS);
+
+//ie
+
+const DWORD CF_FILENAMEA = RegisterClipboardFormat(CFSTR_FILENAMEA);
+const DWORD CF_FILENAMEW = RegisterClipboardFormat(CFSTR_FILENAMEW);
+const DWORD CF_SHELLURLA = RegisterClipboardFormat(CFSTR_INETURLA);
+const DWORD CF_SHELLURLW = RegisterClipboardFormat(CFSTR_INETURLW);
+const DWORD CF_HTML = RegisterClipboardFormat(CFSTR_HTML);
+
+//49970 msSourceUrl
+
+//chrome
+//const DWORD CF_HTML_TEXT = 49890;    //text/html
+//const DWORD CF_HTML_URL = 49955;    //text/x-moz-url
+
+//IsClipboardFormatAvailable(CF_TEXT)检测类型
+
+
+const UINT clipboard_formats[] = {
+    CF_TEXT, CF_BITMAP, CF_METAFILEPICT, CF_SYLK, CF_DIF, CF_TIFF, CF_OEMTEXT,
+    CF_DIB, CF_PALETTE, CF_PENDATA, CF_RIFF, CF_WAVE, CF_UNICODETEXT, CF_ENHMETAFILE,
+    #if(WINVER >= 0x0400)
+    CF_HDROP, CF_LOCALE,
+    #endif /* WINVER >= 0x0400 */
+    #if(WINVER >= 0x0500)
+    CF_DIBV5,
+    #endif /* WINVER >= 0x0500 */
+    CF_OWNERDISPLAY, CF_DSPTEXT, CF_DSPBITMAP, CF_DSPMETAFILEPICT, CF_DSPENHMETAFILE,
+    CF_PRIVATEFIRST, CF_PRIVATELAST, CF_GDIOBJFIRST, CF_GDIOBJLAST,
+    RegisterClipboardFormat(CFSTR_FILENAMEA),
+    RegisterClipboardFormat(CFSTR_FILENAMEW),
+    RegisterClipboardFormat(CFSTR_INETURLA),
+    RegisterClipboardFormat(CFSTR_INETURLW),
+    RegisterClipboardFormat(CFSTR_HTML)
+};
+
+int local_clipboard_format(int format)
+{
+    switch(format)
+    {
+    case CGL_TEXT:
+        return CF_TEXT;
+    case CGL_UNICODETEXT:
+        return CF_UNICODETEXT;
+    case CGL_BITMAP:
+        return CF_BITMAP;
+    default:
+        return 0;
+    }
+}
+
+const char* clipboard_format_name(UINT format)
+{
+    switch(format){
+    CGL_SWITCH_CASE(CF_TEXT);
+    CGL_SWITCH_CASE(CF_BITMAP);
+    CGL_SWITCH_CASE(CF_METAFILEPICT);
+    CGL_SWITCH_CASE(CF_SYLK);
+    CGL_SWITCH_CASE(CF_DIF);
+    CGL_SWITCH_CASE(CF_TIFF);
+    CGL_SWITCH_CASE(CF_OEMTEXT);
+    CGL_SWITCH_CASE(CF_DIB);
+    CGL_SWITCH_CASE(CF_PALETTE);
+    CGL_SWITCH_CASE(CF_PENDATA);
+    CGL_SWITCH_CASE(CF_RIFF);
+    CGL_SWITCH_CASE(CF_WAVE);
+    CGL_SWITCH_CASE(CF_UNICODETEXT);
+    CGL_SWITCH_CASE(CF_ENHMETAFILE);
+    #if(WINVER >= 0x0400)
+    CGL_SWITCH_CASE(CF_HDROP);
+    CGL_SWITCH_CASE(CF_LOCALE);
+    #endif
+    #if(WINVER >= 0x0500)
+    CGL_SWITCH_CASE(CF_DIBV5);
+    #endif
+    CGL_SWITCH_CASE(CF_MAX);
+    CGL_SWITCH_CASE(CF_OWNERDISPLAY);
+    CGL_SWITCH_CASE(CF_DSPTEXT);
+    CGL_SWITCH_CASE(CF_DSPBITMAP);
+    CGL_SWITCH_CASE(CF_DSPMETAFILEPICT);
+    CGL_SWITCH_CASE(CF_DSPENHMETAFILE);
+    CGL_SWITCH_CASE(CF_PRIVATEFIRST);
+    CGL_SWITCH_CASE(CF_PRIVATELAST);
+    CGL_SWITCH_CASE(CF_GDIOBJFIRST);
+    CGL_SWITCH_CASE(CF_GDIOBJLAST);
+    default:
+        break;
+    }
+
+    if(format == CF_FILENAMEA){
+        return "CF_FILENAMEA";
+    }
+    else if(format == CF_FILENAMEW){
+        return "CF_FILENAMEW";
+    }
+    else if(format == CF_SHELLURLA){
+        return "CF_SHELLURLA";
+    }
+    else if(format == CF_SHELLURLW){
+        return "CF_SHELLURLW";
+    }
+    else if(format == CF_HTML){
+        return "CF_HTML";
+    }
+
+    return "CF_UNKNOWN";
+}
+
+BOOL WINAPI IsDisplayableFormat(UINT uFormat)
+{
+    switch (uFormat)
+    {
+        case CF_OWNERDISPLAY:
+        case CF_TEXT:
+        case CF_ENHMETAFILE:
+        case CF_BITMAP:
+            return TRUE;
+    }
+    return FALSE;
+}
+
+class clipboard
+{
+private:
+    bool m_open;
+    HANDLE m_hData;
+    size_t m_size;
+
+public:
+    clipboard():m_hData(null), m_open(false), m_size(0)
+    {
+        open();
+    }
+
+    ~clipboard()
+    {
+        close();
+    }
+
+    bool open()
+    {
+        if(OpenClipboard(NULL)){
+            return m_open = true;
+        }
+        return false;
+    }
+
+    bool close()
+    {
+        if(m_open){
+            CloseClipboard();
+            return m_open = false;
+        }
+    }
+
+    bool is_open()const
+    {
+        return m_open;
+    }
+
+    bool clear()
+    {
+        return EmptyClipboard();
+    }
+
+    UINT format()
+    {
+        const size_t size = sizeof(system::clipboard_formats) / sizeof(UINT);
+        UINT formats[size] = {0};
+        memcpy(formats, clipboard_formats, sizeof(system::clipboard_formats));
+        UINT format = GetPriorityClipboardFormat(formats, size);
+        return format;
+    }
+
+    const char* format_name(UINT format)
+    {
+        static char buf[1024] = {0};
+        GetClipboardFormatNameA(format, buf, sizeof(buf));
+        return buf;
+    }
+
+    size_t format_count()
+    {
+        return CountClipboardFormats();
+    }
+
+    int enum_formats(UINT formats[], size_t size)
+    {
+        //int n = GetUpdatedClipboardFormats(0, size, formats);//formats[0] = size
+        GetUpdatedClipboardFormats(formats, CF_MAX, formats);
+
+        //方法2
+//        UINT format = EnumClipboardFormats(0);
+//        while(format){
+//            //...
+//            format = EnumClipboardFormats(format);
+//        }
+        return 0;
+    }
+
+    bool write(const void *data, size_t size, UINT format)
+    {
+        if(is_open()){
+            EmptyClipboard();
+            HGLOBAL clipbuffer = GlobalAlloc(GMEM_DDESHARE, size);
+            void* buffer = (char*)GlobalLock(clipbuffer);
+            memcpy(buffer, data, size);
+            GlobalUnlock(clipbuffer);
+            SetClipboardData(local_clipboard_format(format), clipbuffer);
+            return true;
+        }
+        return false;
+    }
+
+    const void* lock(UINT format)
+    {
+        m_hData = GetClipboardData(local_clipboard_format(format));
+        if(m_hData){
+            void* buffer = GlobalLock(m_hData);
+            if(buffer){
+                m_size = GlobalSize(buffer);
+                return buffer;
+            }
+        }
+        return null;
+    }
+
+    size_t size()const
+    {
+        return m_size;
+    }
+
+    bool unlock()
+    {
+        GlobalUnlock(m_hData);
+        m_hData = null;
+        m_size = 0;
+        return true;
+    }
+
+    HBITMAP get_bitmap()
+    {
+        return (HBITMAP)GetClipboardData(CF_BITMAP);
+    }
+
+
+    HENHMETAFILE get_emf()
+    {
+        return  (HENHMETAFILE)GetClipboardData(CF_ENHMETAFILE);
+    }
+};
+
+#else //CGL_PLATFORM_WINDOWS
+
+
+class clipboard
+{
+public:
+    int open()
+    {
+        return CGL_ERROR;
+    }
+
+    int close()
+    {
+        return CGL_ERROR;
+    }
+
+    bool is_open()const
+    {
+        return false;
+    }
+
+    bool clear()
+    {
+        return false;
+    }
+
+    int format()
+    {
+        return 0;
+    }
+
+    bool write(const void *data, size_t size, int format)
+    {
+        return false;
+    }
+
+    const void* lock(int format)
+    {
+        return null;
+    }
+
+    size_t size()const
+    {
+        return 0;
+    }
+
+    bool unlock()
+    {
+        return false;
+    }
+};
+
+#endif //end CGL_PLATFORM_WINDOWS
+
+}//end namespace system
+}//end namespace cgl
+
+#endif //CLIPBOARD_HPP_20180601145849

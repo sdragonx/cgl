@@ -1,0 +1,24 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ statistics.hpp
+
+ 2020-11-09 02:10:55
+
+ Í³¼ÆÑ§
+
+*/
+#ifndef STATISTICS_HPP_20201109021055
+#define STATISTICS_HPP_20201109021055
+
+#include <cgl/public.h>
+
+namespace cgl{
+namespace math{
+namespace {
+
+}//end namespace
+}//end namespace math
+}//end namespace cgl
+
+#endif //STATISTICS_HPP_20201109021055

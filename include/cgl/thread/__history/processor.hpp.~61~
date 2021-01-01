@@ -1,0 +1,106 @@
+                                                                                                              /*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ processor.hpp
+
+ 2020-02-09 23:39:01
+
+*/
+#ifndef PROCESSOR_HPP_20200209233901
+#define PROCESSOR_HPP_20200209233901
+
+#include <cgl/public.h>
+#include <cgl/memory/bitset.hpp>
+
+#ifdef CGL_PLATFORM_WINDOWS
+
+#else
+
+#include<sys/types.h>
+#include<sys/sysinfo.h>
+
+//#define _GNU_SOURCE             /* See feature_test_macros(7) */
+#include <sched.h>
+
+#endif
+
+namespace cgl{
+
+enum CPU_ID{
+    CGL_CPU0 = 0x0001,
+    CGL_CPU1 = 0x0002,
+    CGL_CPU2 = 0x0004,
+    CGL_CPU3 = 0x0008,
+    CGL_CPU4 = 0x0011,
+    CGL_CPU5 = 0x0020,
+    CGL_CPU6 = 0x0040,
+    CGL_CPU7 = 0x0080
+};
+
+typedef bitset<32> cpuset;
+
+#ifdef CGL_PLATFORM_WINDOWS
+
+int cpu_count()
+{
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+	return info.dwNumberOfProcessors;
+}
+
+void thread_setcpu(int handle, uint32_t mask)
+{
+    SetThreadAffinityMask((HANDLE)handle, mask);
+}
+
+void thread_setcpu(int handle, const cpuset& set)
+{
+    //测试的bitset和掩码值一致(little endian)
+    SetThreadAffinityMask((HANDLE)handle, *((DWORD*)&set));
+}
+
+cpuset thread_getcpu(int handle)
+{
+}
+
+#else
+
+int cpu_count()
+{
+    return sysconf(_SC_NPROCESSORS_CONF);
+}
+
+bool thread_setcpu(int handle, const cpuset& set)
+{
+    cpu_set_t cs;
+    CPU_ZERO(&cs);
+    for(int i=0; i<32; ++i){
+        if(set.bit(i)){
+            CPU_SET(i, &cs);
+        }
+    }
+    sched_getaffinity(handle, sizeof(cs), &cs);//0 ok; -1 failed
+}
+
+cpuset thread_getcpu(int handle)
+{
+    cpuset set;
+    cpu_set_t cs;
+    CPU_ZERO(&cs);
+    if(sched_getaffinity(0, sizeof(cs), &cs) == -1){
+        //error
+        return set;
+    }
+    for(int i=0; i<cpu_count(); ++i){
+        if(CPU_ISSET(i, &cs)){
+            set.set(i);
+        }
+    }
+    return set;
+}
+
+#endif
+
+}//end namespace cgl
+
+#endif //PROCESSOR_HPP_20200209233901

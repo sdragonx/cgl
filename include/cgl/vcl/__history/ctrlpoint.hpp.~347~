@@ -1,0 +1,308 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ ctrlpoint.hpp
+
+ 2020-03-23 08:34:58
+
+*/
+#ifndef CTRLPOINT_HPP_20200323083458
+#define CTRLPOINT_HPP_20200323083458
+
+#include "base.hpp"
+#include <cgl/algorithm.hpp>
+#include <cgl/graphics/gdi/gdiplus.hpp>
+#include <cgl/system/mouse.hpp>
+#include <cgl/system/keyboard.hpp>
+
+namespace cgl{
+namespace vcl{
+
+//const int CONTROL_POINT_SIZE = 4;
+
+bool IsValidIndex(int n)
+{
+    return n >= 0;
+}
+
+class TControlPoint : public TPaintBox
+{
+private:
+    TNotifyEvent FOnMove;
+
+public:
+    vec2f Orgin;
+
+    DWORD PenColor;
+    DWORD BrushColor;
+
+public:
+    __fastcall virtual TControlPoint(Classes::TComponent* AOwner) : TPaintBox(AOwner)
+    {
+        FOnMove = NULL;
+        this->Cursor = crHandPoint;
+        Width = 9;
+        Height = 9;
+        PenColor = Gdiplus::Color::Gray;
+        BrushColor = Gdiplus::Color::Blue;
+    }
+
+    vec2f __fastcall GetPosition()const
+    {
+        return vec2f(Left + Width / 2, Top + Height / 2);
+    }
+
+    void __fastcall SetPosition(vec2f p)
+    {
+        Left = p.x - Width / 2;
+        Top  = p.y - Height / 2;
+    }
+
+    void __fastcall SetPosition(TPoint p, vec2i org, float scale)
+    {
+        Left = p.x - Width / 2;
+        Top  = p.y - Height / 2;
+        org.x = ( p.x - org.x ) / scale;
+        org.y = ( p.y - org.y ) / scale;
+    }
+
+    __property vec2f Position = { read = GetPosition, write = SetPosition };
+
+    virtual void __fastcall Paint(void)
+    {
+        Gdiplus::Graphics g(Canvas->Handle);
+        Gdiplus::Pen pen(PenColor);
+        Gdiplus::SolidBrush brush(BrushColor);
+        g.SetSmoothingMode( Gdiplus::SmoothingModeHighQuality );
+        g.DrawEllipse(&pen, 0, 0, Width - 1, Height - 1);
+        g.FillEllipse(&brush, 0, 0, Width-1, Height-1);
+    }
+
+protected:
+    DYNAMIC void __fastcall MouseDown(TMouseButton Button, Classes::TShiftState Shift, int X, int Y)
+    {
+        if(Button == mbLeft){
+			mouse.button = 1;
+            mouse.last = vec2i(X, Y);
+		}
+		else if(Button == mbRight){
+//			TPoint p = shape->ClientToScreen(TPoint(X, Y));
+//			frmMain->pmnCTPoint->PopupComponent = shape;
+//			frmMain->pmnCTPoint->Popup(p.x, p.y);
+		}
+        if(OnMouseDown)OnMouseDown(this, Button, Shift, X, Y);
+    }
+
+	DYNAMIC void __fastcall MouseMove(Classes::TShiftState Shift, int X, int Y)
+    {
+        if(mouse.button){
+			Left += X - mouse.last.x;
+			Top += Y - mouse.last.y;
+            if(FOnMove)FOnMove(this);
+            Parent->Repaint();
+		}
+        if(OnMouseMove)OnMouseMove(this, Shift, X, Y);
+    }
+
+	DYNAMIC void __fastcall MouseUp(TMouseButton Button, Classes::TShiftState Shift, int X, int Y)
+    {
+        mouse.button = 0;
+        if(OnMouseUp)OnMouseUp(this, Button, Shift, X, Y);
+    }
+
+__published:
+    __property TNotifyEvent OnMove = { read = FOnMove, write = FOnMove };
+};
+
+class TControlPoints
+{
+private:
+    TWinControl* FOwner;
+    std::vector<TControlPoint*> FPoints;
+
+    vec2f FOrgPoint;    //起点
+    float FScale;       //缩放
+
+    int FIndex;//索引
+    int FHotIndex;
+
+public:
+    TControlPoints(TWinControl* Owner) : FOwner(Owner)
+    {
+        FIndex = -1;
+        FHotIndex = -1;
+    }
+
+    void SetProperty(int x, int y, float scale)
+    {
+        FOrgPoint = vec2f(x, y);
+        FScale = scale;
+        UpdatePoints();
+    }
+
+    int Insert(int id, int x, int y)
+    {
+        if(IsValidIndex(id)){
+        }
+        else{
+            id = FPoints.size();
+        }
+        TControlPoint* cp = new TControlPoint(FOwner);
+        cp->Parent = FOwner;
+        cp->Orgin = vec2f(x, y);
+        cp->Position = vec2f(x, y) * FScale + FOrgPoint;
+        cp->OnMove = Point_OnMove;
+        cp->OnMouseDown  = Point_MouseDown;
+        cp->OnMouseEnter = Point_MouseEnter;
+        cp->OnMouseLeave = Point_MouseLeave;
+        cp->BringToFront();
+        FPoints.insert(FPoints.begin() + id, cp);
+        ResetIndices();
+        FOwner->Repaint();
+
+        return 0;
+    }
+
+    void Erase(int id)
+    {
+        if(FPoints.size() < size_t(id)){
+            return ;
+        }
+
+        delete FPoints[id];
+        FPoints.erase(FPoints.begin() + id);
+        ResetIndices();
+        if(FIndex == id){
+            FIndex = -1;
+        }
+        if(FHotIndex == id){
+            FHotIndex = -1;
+        }
+    }
+
+    void Clear()
+    {
+        delete_all(FPoints);
+        FPoints.clear();
+        FIndex = FHotIndex = -1;
+    }
+
+    bool Empty()const
+    {
+        return FPoints.empty();
+    }
+
+    size_t Size()const
+    {
+        return FPoints.size();
+    }
+
+    TControlPoint* operator[](int id)
+    {
+        return FPoints[id];
+    }
+
+    const TControlPoint* operator[](int id)const
+    {
+        return FPoints[id];
+    }
+
+    void UpdatePoints()
+    {
+        vec2f p;
+        for(size_t i=0; i<FPoints.size(); ++i){
+            TControlPoint* cp = FPoints[i];
+            p = cp->Orgin;
+            p *= FScale;
+            p += FOrgPoint;
+            cp->Position = vec2f(p.x, p.y);
+        }
+    }
+
+    void ResetIndices()
+    {
+        for(size_t i=0; i<FPoints.size(); ++i){
+            FPoints[i]->Tag = i;
+        }
+    }
+
+    __property int SelectIndex = { read = GetSelectIndex, write = Select };
+    __property TControlPoint* Selected = { read = GetSelectPoint, write = SetSelectPoint };
+
+private:
+    int __fastcall GetSelectIndex()
+    {
+        return FIndex;
+    }
+
+    void __fastcall Select(int id)
+    {
+        if(IsValidIndex(FIndex)){
+            FPoints[FIndex]->BrushColor = Gdiplus::Color::Blue;
+            FPoints[FIndex]->Paint();
+        }
+        FIndex = id;
+        if(IsValidIndex(id)){
+            FPoints[FIndex]->Paint();
+        }
+    }
+
+    TControlPoint* __fastcall GetSelectPoint()
+    {
+        if(IsValidIndex(FIndex)){
+            return FPoints[FIndex];
+        }
+        return NULL;
+    }
+
+    void __fastcall SetSelectPoint(TControlPoint* p)
+    {
+        Select(p->Tag);
+    }
+
+    void __fastcall Point_OnMove(TObject* Sender)
+    {
+        TControlPoint* cp = dynamic_cast<TControlPoint*>(Sender);
+        if(cp){
+            cp->Orgin = (cp->Position - FOrgPoint) / FScale;
+        }
+    }
+
+    void __fastcall Point_MouseDown(TObject* Sender, TMouseButton Button, Classes::TShiftState Shift, int X, int Y)
+    {
+        TControlPoint* cp = dynamic_cast<TControlPoint*>(Sender);
+        if(cp){
+            Select(cp->Tag);
+        }
+    }
+
+    void __fastcall Point_MouseEnter(TObject* Sender)
+    {
+        TControlPoint* cp = dynamic_cast<TControlPoint*>(Sender);
+        if(cp){
+            cp->BrushColor = Gdiplus::Color::Yellow;
+            cp->Paint();
+            FHotIndex = cp->Tag;
+        }
+    }
+
+    void __fastcall Point_MouseLeave(TObject* Sender)
+    {
+        TControlPoint* cp = dynamic_cast<TControlPoint*>(Sender);
+        if(cp){
+            if(cp->Tag == FIndex){//is selected
+                cp->BrushColor = Gdiplus::Color::Red;
+            }
+            else{
+                cp->BrushColor = Gdiplus::Color::Blue;
+            }
+            cp->Paint();
+            FHotIndex = -1;
+        }
+    }
+};
+
+}//end namespace vcl
+}//end namespace cgl
+
+#endif //CTRLPOINT_HPP_20200323083458

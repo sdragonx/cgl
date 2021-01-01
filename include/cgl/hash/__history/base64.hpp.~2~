@@ -1,0 +1,129 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ base64.hpp
+
+ 2017-01-06 18:59:36
+
+*/
+#ifndef BASE64_HPP_20170106185936
+#define BASE64_HPP_20170106185936
+
+#include <cgl/public.h>
+
+#ifdef CGL_PLATFORM_CBUILDER
+
+#endif
+
+namespace cgl{
+namespace hash{
+
+size_t base64_encode_size(size_t size)
+{
+    return (size + 2) / 3 * 4;
+}
+
+size_t base64_decode_size(size_t size)
+{
+    size = size * 3 / 4;
+    size = (size + 3) & (~3);
+    return size;
+}
+
+size_t base64_encode(byte_t* pout, const byte_t* pin, size_t size)
+{
+    //编码表
+    const char EncodeTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    //返回值
+    byte_t* p = pout;
+    byte_t temp[4] = {0};
+
+    //size_t length = 0;
+    for(size_t i=0; i<size/3; ++i){
+        temp[1] = *pin++;
+        temp[2] = *pin++;
+        temp[3] = *pin++;
+        *p++ = EncodeTable[temp[1] >> 2];
+        *p++ = EncodeTable[((temp[1] << 4) | (temp[2] >> 4)) & 0x3F];
+        *p++ = EncodeTable[((temp[2] << 2) | (temp[3] >> 6)) & 0x3F];
+        *p++ = EncodeTable[temp[3] & 0x3F];
+        /*
+        if(length+=4, length==76){
+            *p++ = '\r';
+            *p++ = '\n';
+            length=0;
+        }
+        */
+    }
+    //对剩余数据进行编码
+    int m = size % 3;
+    if(m == 1){
+        temp[1] = *pin++;
+        *p++ = EncodeTable[(temp[1] & 0xFC) >> 2];
+        *p++ = EncodeTable[((temp[1] & 0x03) << 4)];
+        *p++ = '=';
+        *p++ = '=';
+    }
+    else if(m == 2){
+        temp[1] = *pin++;
+        temp[2] = *pin++;
+        *p++ = EncodeTable[(temp[1] & 0xFC) >> 2];
+        *p++ = EncodeTable[((temp[1] & 0x03) << 4) | ((temp[2] & 0xF0) >> 4)];
+        *p++ = EncodeTable[((temp[2] & 0x0F) << 2)];
+        *p++ = '=';
+    }
+
+    return p-pout;
+}
+
+size_t base64_decode(byte_t* pout, const byte_t* pin, size_t size)
+{
+    //解码表
+    const char DecodeTable[] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        62, // '+'
+        0, 0, 0,
+        63, // '/'
+        52, 53, 54, 55, 56, 57, 58, 59, 60, 61, // '0'-'9'
+        0, 0, 0, 0, 0, 0, 0,
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, // 'A'-'Z'
+        0, 0, 0, 0, 0, 0,
+        26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+        39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, // 'a'-'z'
+    };
+
+    byte_t* p = pout;
+    int value;
+    for(size_t i=0; i < size; ){
+        if (*pin != '\r' && *pin!='\n'){
+            value =  DecodeTable[*pin++] << 18;
+            value += DecodeTable[*pin++] << 12;
+            *p++ = (value & 0x00FF0000) >> 16;
+            if (*pin != '='){
+                value += DecodeTable[*pin++] << 6;
+                *p++ = (value & 0x0000FF00) >> 8;
+                if (*pin != '='){
+                    value += DecodeTable[*pin++];
+                    *p++ = value & 0x000000FF;
+                }
+            }
+            i += 4;
+        }
+        else{// 回车换行,跳过
+            ++pin;
+            ++i;
+        }
+     }
+    *p = '\0';
+
+    return p - pout;
+}
+
+}//end namespace hash
+}//end namespace cgl
+
+#endif //BASE64_HPP_20170106185936

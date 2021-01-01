@@ -1,0 +1,318 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ treeview.hpp
+
+ 2018-09-07 13:55:05
+
+*/
+#ifndef VCL_TREEVIEW_HPP_20180907135505
+#define VCL_TREEVIEW_HPP_20180907135505
+
+#include <cgl/filesystem.hpp>
+#include "base.hpp"
+#include <vector>
+
+namespace cgl{
+namespace vcl{
+
+//
+// TTreeNode
+//
+
+//返回节点的根节点
+TTreeNode* TTreeNode_Root(TTreeNode* Node)
+{
+    if(Node){
+        return null;
+    }
+    while(Node->Parent){
+        Node = Node->Parent;
+    }
+    return Node;
+}
+
+//返回同级节点中的第一个节点
+TTreeNode* TTreeNode_FirstNode(TTreeNode* Node)
+{
+    CGL_ASSERT(Node);
+    if(Node->Parent){
+        return Node->Parent->getFirstChild();
+    }
+    else{
+        return Node->Owner->GetFirstNode();
+    }
+}
+
+//返回同级节点中的最后一个节点
+TTreeNode* TTreeNode_LastNode(TTreeNode* Node)
+{
+    CGL_ASSERT(Node);
+    if(Node->Parent)
+    {
+        return Node->Parent->GetLastChild();
+    }
+    else
+    {
+        while(Node->getNextSibling())
+        {
+            Node = Node->getNextSibling();
+        }
+        return Node;
+    }
+}
+
+//
+// TTreeView
+//
+
+//根据字符串查找当前子节点
+TTreeNode* TTreeView_FindChild(TTreeView* TreeView, String Name)
+{
+    if(!TreeView){
+        return null;
+    }
+
+    TTreeNode* Node = TreeView->Items->GetFirstNode();
+    while(Node){
+        if(!StrICmp(Node->Text, Name)){
+            break;
+        }
+        Node = Node->getNextSibling();
+    }
+
+    return Node;
+}
+
+TTreeNode* TTreeView_FindChild(TTreeNode* Node, String Name)
+{
+    if(!Node){
+        return null;
+    }
+
+    Node = Node->getFirstChild();
+    while(Node){
+        if(!StrICmp(Node->Text, Name)){
+            break;
+        }
+        Node = Node->getNextSibling();
+    }
+    return Node;
+}
+
+//
+//查找子节点
+//
+TTreeNode* TTreeView_Find(TTreeView* TreeView, TTreeNode* Node, String Name)
+{
+    TTreeNode* SubNode = Node ? Node->getFirstChild() : TreeView->Items->GetFirstNode();
+
+    while(SubNode){
+        if(!StrICmp(SubNode->Text, Name)){
+            break;
+        }
+        SubNode = SubNode->getNextSibling();
+    }
+    return SubNode;
+}
+
+//整个TreeView里查找，不区分大小写
+//另外还需要有一个TTreeView_FindNext(Nodes, Node, Name)
+int TTreeView_FindNodes(std::vector<TTreeNode*> ls, TTreeView* treeview, String name)
+{
+    for(int i=0; i<treeview->Items->Count; ++i)
+    {
+        if(StrICmp(treeview->Items->Item[i]->Text, name)){
+            ls.push_back(treeview->Items->Item[i]);
+        }
+    }
+    return ls.size();
+}
+
+//返回节点的路径
+//aaa/bbb/ccc
+String TTreeView_FullPath(TTreeNode* Node, Char Delimiter = '/')
+{
+    if(!Node){
+        return String();
+    }
+    String str = Node->Text;
+    while(Node->Parent)
+    {
+        Node = Node->Parent;
+        str  = Node->Text + Delimiter + str;
+    }
+    return str;
+}
+
+//通过路径展开节点。
+//搜索成功，返回找到的Node
+//Path        "aaa/bbb/ccc"
+//Expand    是否展开
+TTreeNode* TTreeView_OpenPath(TTreeView* TreeView,
+    String Path,
+    bool Expand = true,
+    int Delimiter = '/')
+{
+    if(Path.IsEmpty()){
+        return null;
+    }
+
+    alone_ptr<TStringList> ls(new TStringList);
+    ls->Delimiter = Delimiter;
+    ls->DelimitedText = Path;
+
+    TTreeNode* node = null;
+    TTreeNode* find_node;
+    for(int i=0; i<ls->Count; ++i){
+        find_node = TTreeView_Find(TreeView, node, ls->Strings[i]);
+        if(find_node){
+            if(node){
+                node->Expanded = Expand;
+            }
+            node = find_node;
+        }
+        else{
+            break;
+        }
+    }
+
+    return find_node;
+}
+
+//通过路径创建node
+/*
+TTreeNode* TTreeView_CreatePath(TTreeView* TreeView, String Path, int Delimiter = '/')
+{
+    alone_ptr<TStringList> ls(new TStringList);
+    ls->Delimiter = Delimiter;
+    ls->DelimitedText = Path;
+    TTreeNode* node = null;
+    TTreeNode* find_node;
+    for(int i=0; i<ls->Count; ++i)
+    {
+        find_node = TTreeView_Find(TreeView, node, ls->Strings[i]);
+        if(find_node){
+            node = find_node;
+        }
+        else{
+            node = TreeView->Items->AddChild(node, ls->Strings[i]);
+        }
+    }
+    return node;
+}
+/*/
+
+TTreeNode* TTreeView_CreatePath(TTreeView* TreeView, String Path, int Delimiter = '/')
+{
+    unistring name;
+    TTreeNode* node = null;
+    TTreeNode* find_node;
+
+    for(int i=1; i<=Path.Length(); ++i){
+        if(Path[i] == Delimiter){
+            if(name.empty()){
+                continue;
+            }
+            find_node = TTreeView_Find(TreeView, node, name.c_str());
+            if(find_node){
+                node = find_node;
+            }
+            else{
+                node = TreeView->Items->AddChild(node, name.c_str());
+            }
+            name.clear();
+        }
+        else{
+            name.push_back(Path[i]);
+        }
+    }
+
+    if(!name.empty()){
+        node = TreeView->Items->AddChild(node, name.c_str());
+    }
+
+    return node;
+}
+
+TTreeNode* TTreeView_CreatePath(std::map<unistring, TTreeNode*> &itembuf,
+    TTreeView* TreeView, String Path, int Delimiter = '/')
+{
+    unistring name;
+    TTreeNode* node = null;
+    TTreeNode* find_node;
+
+    for(int i=1; i<=Path.Length(); ++i){
+        if(Path[i] == Delimiter){
+            if(name.empty()){
+                continue;
+            }
+            //find_node = TTreeView_Find(TreeView, node, name.c_str());
+            find_ndoe = itembuf.find(name);
+            if(find_node){
+                node = find_node;
+            }
+            else{
+                node = TreeView->Items->AddChild(node, name.c_str());
+            }
+            name.clear();
+        }
+        else{
+            name.push_back(Path[i]);
+        }
+    }
+
+    if(!name.empty()){
+        node = TreeView->Items->AddChild(node, name.c_str());
+    }
+
+    return node;
+}
+//*/
+
+void TTreeView_ListFolder(TTreeView* TreeView, TTreeNode* Parent, TString Path)
+{
+    TTreeNode* SubNode;
+    WIN32_FIND_DATA wfd;
+    HANDLE hFind = FindFirstFile((Path + "*").c_str(), &wfd);
+    if(hFind != INVALID_HANDLE_VALUE){
+        do{
+            if(wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY){
+				if(!filesystem::is_vtdir(wfd.cFileName)){
+                    SubNode = Parent->Owner->AddChild(Parent, wfd.cFileName);
+                    TTreeView_ListFolder(TreeView, SubNode, Path + wfd.cFileName + "\\");
+				}
+			}
+			else{
+                //TTreeNode* SubNode = Node->Owner->AddChild(Node, wfd.cFileName);
+			}
+        }while(FindNextFile(hFind, &wfd));
+    }
+}
+
+//列举目录下的文件到TreeNode
+void TTreeView_ListFile(TTreeNode* Node, TString Path)
+{
+    TTreeNode* SubNode;
+    WIN32_FIND_DATA wfd;
+    HANDLE hFind = FindFirstFile((Path + "*").c_str(), &wfd);
+    if(hFind != INVALID_HANDLE_VALUE){
+        do{
+            if(wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY){
+				if(!filesystem::is_vtdir(wfd.cFileName)){
+                    SubNode = Node->Owner->AddChild(Node, wfd.cFileName);
+                    TTreeView_ListFile(SubNode, Path + wfd.cFileName + "\\");
+				}
+			}
+			else{
+                SubNode = Node->Owner->AddChild(Node, wfd.cFileName);
+			}
+        }while(FindNextFile(hFind, &wfd));
+    }
+}
+
+
+}//end namespace vcl
+}//end namespace cgl
+
+#endif //VCL_TREEVIEW_HPP_20180907135505

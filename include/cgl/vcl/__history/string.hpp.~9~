@@ -1,0 +1,178 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ vcl_string.hpp
+
+ 2020-01-21 17:00:41
+
+*/
+#ifndef VCL_STRING_HPP_20200121170041
+#define VCL_STRING_HPP_20200121170041
+
+#include <cgl/std/string.hpp>
+#include "base.hpp"
+
+namespace cgl{
+namespace vcl{
+
+
+int StrICmp(AnsiString s1, AnsiString s2)
+{
+    return s1.AnsiCompareIC(s2);
+}
+
+int StrICmp(WideString s1, WideString s2)
+{
+    return cscmp(s1.c_bstr(), s2.c_bstr(), std::max(s1.Length(), s2.Length()));
+}
+
+#ifdef USTRING_H//cb2010
+int StrICmp(const UnicodeString& s1, const UnicodeString& s2)
+{
+    return s1.CompareIC(s2);
+}
+#endif
+
+//获得一个随机字符串
+String RandString(String Seed, int Rand)
+{
+    return Seed + IntToStr(random(Rand));
+}
+
+//
+// SplitString()
+//
+
+int SplitString(
+    TStrings* List,    //存储分割的字符串
+    const String& Text,
+    char Delimiter,
+    bool Repeat = true)
+{
+    int Pos = 1;
+    int i   = Pos;
+    for(; i<=Text.Length(); ++i){
+        if(Text[i] == Delimiter){
+            if(i-Pos == 0){
+                if(!Repeat)List->Add("");
+            }
+            else{
+                List->Add(Text.SubString(Pos, i-Pos));
+            }
+            Pos = i+1;
+        }
+    }
+    if(Pos == 1){
+        List->Add(Text);
+    }
+    else if(Pos != i){
+        List->Add(Text.SubString(Pos, i-Pos));
+    }
+    return List->Count;
+}
+
+
+//
+// TStrings_Sort()
+//
+
+int __fastcall TStringList_OnCompare(TStringList* List, int Index1, int Index2)
+{
+    int n = std::max(List->Strings[Index1].Length(), List->Strings[Index2].Length());
+    return (cscmp(List->Strings[Index1].c_str(), List->Strings[Index2].c_str(), n) < 0);
+}
+
+void TStrings_Sort(TStrings* ls)
+{
+    TStringList* list = dynamic_cast<TStringList*>(ls);
+    if(list){
+        list->Sort();
+    }
+    else{
+        list = new TStringList;
+        list->Assign(ls);
+        //list->Sort();
+        list->CustomSort(TStringList_OnCompare);
+        ls->Clear();
+        ls->Assign(list);
+        delete list;
+        list = NULL;
+    }
+}
+
+
+}//end namespace vcl
+}//end namespace cgl
+
+template<typename T>
+struct StringT;
+
+template<>
+struct StringT<char>
+{
+    typedef AnsiString type;
+};
+
+template<>
+struct StringT<wchar_t>
+{
+    #ifdef CGL_PLATFORM_CB6
+    typedef WideString type;
+    #else
+    typedef UnicodeString type;
+    #endif
+};
+
+template<class _Traits>
+inline std::basic_ostream<char, _Traits>& operator<<(std::basic_ostream<char, _Traits>& stm, AnsiString str)
+{
+    stm.rdbuf()->sputn(str.c_str(), str.Length());
+    return stm;
+}
+
+template<class _Traits>
+inline std::basic_ostream<char, _Traits>& operator<<(std::basic_ostream<char, _Traits>& stm, WideString str)
+{
+    AnsiString as = str;
+    stm.rdbuf()->sputn(as.c_str(), as.Length());
+    return stm;
+}
+
+#ifndef CGL_PLATFORM_CB6
+
+template<class _Traits>
+inline std::basic_ostream<char, _Traits>& operator<<(std::basic_ostream<char, _Traits>& stm, UnicodeString str)
+{
+    AnsiString as = str;
+    stm.rdbuf()->sputn(as.c_str(), as.Length());
+    return stm;
+}
+
+template<class _Traits>
+inline std::basic_ostream<char, _Traits>& operator<<(std::basic_ostream<char, _Traits>& stm, UTF8String str)
+{
+    stm.rdbuf()->sputn(str.c_str(), str.Length());
+    return stm;
+}
+
+#endif
+
+template<class _Elem, class _Traits>
+inline std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& stm, const TRect& rc)
+{
+    TCHAR buf[64];
+    int n = _sntprintf(buf, 64, TEXT("[%i, %i]-[%i, %i]"), rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top);
+    stm.rdbuf()->sputn(buf, n);
+    return stm;
+}
+
+template<class _Elem, class _Traits>
+inline std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& stm, const TColor& color)
+{
+    TCHAR buf[64];
+    int n = _sntprintf(buf, 64, TEXT("0x%08X"), color);
+    stm.rdbuf()->sputn(buf, n);
+    return stm;
+}
+
+#endif //VCL_STRING_HPP_20200121170041

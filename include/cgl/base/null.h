@@ -31,7 +31,7 @@ public:
     }
 
     template<typename T>
-    T cast()const
+    T as()const
     {
         return static_cast<T>(0);
     }
@@ -62,7 +62,7 @@ template<typename T> bool operator!=(const T* value, null_t) { return value; }
 CGL_PUBLIC_DECLARE null_t null = null_t();
 
 #if __cplusplus < CGL_CPP11
-    #define nullptr null
+    #define nullptr NULL
 #endif
 
 //

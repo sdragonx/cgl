@@ -1,0 +1,61 @@
+数据分析、着色
+
+const char* ass_text = __stringify(
+
+move    begin   0   //seek pos
+move    end     0
+move    current 0
+
+:zip_type
+read	uint32  4
+equal	0x504b0102  //less greater
+jmp	pk0102
+equal	0x504b0304
+jmp	pk0304
+
+:pk_0102
+tagmov  2       "unzip version"
+tag     4       "name length"
+read    mm0     4
+tag     4       "extra size"
+read    mm1     4
+tagmov  mm0     "name"
+color   0x00FF0000
+tagmov  mm1     "extra"
+goto    zip_type
+
+);
+
+struct script_var
+{
+    byte_t   type;
+    union{
+        byte_t   data[8];
+        uint8_t  byte;
+        uint8_t  word;
+        uint32_t dword;
+        uint64_t qword;
+    };
+};
+
+enum ASS_CALL
+{
+    ASS_NULL,
+    ASS_MOVE,
+    ASS_GOTO,
+    ASS_JUMP,
+    ASS_TAG,
+};
+
+struct ass_line
+{
+    int call;
+
+};
+
+class hex_script
+{
+public:
+    script_var value;
+
+};

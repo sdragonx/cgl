@@ -1,0 +1,51 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ memlink.hpp
+
+ 2020-06-01 10:10:13
+
+*/
+#ifndef MEMLINK_HPP_20200601101013
+#define MEMLINK_HPP_20200601101013
+
+#include <vcl.h>
+
+namespace cgl{
+namespace vcl{
+
+
+class TMemoryLink : public TCustomMemoryStream
+{
+public:
+    typedef TCustomMemoryStream inherited;
+
+public:
+    inline __fastcall TMemoryLink(void) : TCustomMemoryStream() { }
+    __fastcall ~TMemoryLink(void) { }
+
+    void Link(void * Ptr, int Size)
+    {
+        SetPointer(Ptr, Size);
+    }
+
+    virtual int __fastcall Read(void *Buffer, int Count)
+    {
+        if(Position + Count >= Size){
+            Count = Size - Position;
+            if(Count < 0)Count = 0;
+        }
+        memcpy(Buffer, Memory, Count);
+        return Count;
+    }
+
+	virtual int __fastcall Write(const void *Buffer, int Count)
+    {
+        return 0;
+    }
+};
+
+}//end namespace vcl
+}//end namespace cgl
+
+#endif //MEMLINK_HPP_20200601101013

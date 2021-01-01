@@ -1,0 +1,68 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ fft.hpp
+
+ 2020-11-09 01:05:42
+
+ 快速傅里叶变换
+ Fast Fourier Transformation
+
+*/
+#ifndef FFT_HPP_20201109010542
+#define FFT_HPP_20201109010542
+
+#include <cgl/public.h>
+
+namespace cgl{
+
+int fft(math::complex<double> buf[], int n)
+{
+    int i, j, k;
+    math::complex<double> s;
+    math::complex<double> t;
+    math::complex<double> u;
+
+    //int M = (int) (log(n) / log(2));
+
+    // bit reversal sorting
+    j = n / 2;
+    // 控制反转，排序，从低频到高频
+    for (i = 1; i <= n - 2; i++) {
+        if (i < j) {
+            std::swap(buf[i], buf[j]);
+        }
+        k = n / 2;
+        while (k <= j) {
+            j = j - k;
+            k = k / 2;
+        }
+        j = j + k;
+    }
+
+    // For Loops
+    for(int step = 1; step <= n; step *= 2){
+        k = step / 2;
+        u.real = 1.0;
+        u.imag = 0.0;
+        s.real = cos(M_PI / k);// cos和sin消耗大量的时间，可以用定值
+        s.imag = -sin(M_PI / k);
+        for (j = 0; j < k; ++j) { // loop for each sub DFT
+            for (i = j; i < n; i += step) {// loop for each butterfly
+                t = buf[i + k] * u;
+                buf[i + k] = buf[i] - t;
+                buf[i] += t;
+            } // Next i
+//            t.real = u.real;
+//            u.real = t.real * s.real - u.imag * s.imag;
+//            u.imag = t.real * s.imag + u.imag * s.real;
+            u *= s;
+        } // Next j
+    } // Next l
+
+    return 0;
+}
+
+}//end namespace cgl
+
+#endif //FFT_HPP_20201109010542

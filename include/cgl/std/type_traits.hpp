@@ -204,30 +204,6 @@ template <typename T> struct is_const<const T&>     : public true_type  { };
 template <typename T> struct is_const<const T* &>   : public true_type  { };
 
 //---------------------------------------------------------------------------
-#ifndef CGL_IS_EQUAL
-#define CGL_IS_EQUAL
-
-template<typename T>
-inline bool is_equal(const T& a, const T& b)
-{
-    return a == b;
-}
-
-template<> inline bool is_equal<float>(const float& a, const float& b) { return is_zero(b - a); }
-template<> inline bool is_equal<double>(const double& a, const double& b) { return is_zero(b - a); }
-template<> inline bool is_equal<long double>(const long double& a, const long double& b) { return is_zero(b - a); }
-
-//template<> inline bool is_equal<char*>(const long double& a, const long double& b) { return is_zero(b - a); }
-
-template<typename T>
-inline bool is_not_equal(const T& a, const T& b)
-{
-    return !is_equal<T>(a, b);
-}
-
-#endif
-//---------------------------------------------------------------------------
-
 
 namespace internal{
 

@@ -1,0 +1,15 @@
+object ZipView: TZipView
+  Left = 0
+  Top = 0
+  Width = 330
+  Height = 429
+  TabOrder = 0
+  object TreeView1: TTreeView
+    Left = 19
+    Top = 43
+    Width = 226
+    Height = 334
+    Indent = 19
+    TabOrder = 0
+  end
+end

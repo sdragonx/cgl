@@ -1,0 +1,6 @@
+#ifndef LIBTESS_CDT_HPP
+#define LIBTESS_CDT_HPP
+
+#include "mesh.hpp"
+
+#endif //LIBTESS_CDT_HPP

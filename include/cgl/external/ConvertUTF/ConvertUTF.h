@@ -90,9 +90,13 @@
 #ifndef LLVM_SUPPORT_CONVERTUTF_H
 #define LLVM_SUPPORT_CONVERTUTF_H
 
-#ifdef __cplusplus
+#include <cstddef>
+#include <string>
+
+// Wrap everything in namespace llvm so that programs can link with llvm and
+// their own version of the unicode libraries.
+
 namespace llvm {
-#endif
 
 /* ---------------------------------------------------------------------
     The following 4 definitions are compiler-specific.
@@ -102,17 +106,10 @@ namespace llvm {
     bit mask & shift operations.
 ------------------------------------------------------------------------ */
 
-#ifndef __cplusplus
 typedef unsigned int    UTF32;  /* at least 32 bits */
 typedef unsigned short  UTF16;  /* at least 16 bits */
 typedef unsigned char   UTF8;   /* typically 8 bits */
 typedef unsigned char   Boolean; /* 0 or 1 */
-#else
-typedef unsigned __int32 UTF32;  /* at least 32 bits */
-typedef unsigned __int16 UTF16;  /* at least 16 bits */
-typedef unsigned __int8  UTF8;   /* typically 8 bits */
-typedef bool Boolean;
-#endif
 
 /* Some fundamental constants */
 #define UNI_REPLACEMENT_CHAR (UTF32)0x0000FFFD
@@ -126,20 +123,6 @@ typedef bool Boolean;
 #define UNI_UTF16_BYTE_ORDER_MARK_NATIVE  0xFEFF
 #define UNI_UTF16_BYTE_ORDER_MARK_SWAPPED 0xFFFE
 
-//UTF BOM
-/*
-00 00 FE FF	UTF-32, big-endian
-FF FE 00 00	UTF-32, little-endian
-FE FF		UTF-16, big-endian
-FF FE		UTF-16, little-endian
-EF BB BF	UTF-8
-*/
-const char UNI_UTF8_BOM[3] = {0xEF, 0xBB, 0xBF};
-const char UNI_UTF16BE_BOM[2] = {0xFE, 0xFF};
-const char UNI_UTF16LE_BOM[2] = {0xFF, 0xFE};
-const char UNI_UTF32BE_BOM[4] = {0x00, 0x00, 0xFE, 0xFF};
-const char UNI_UTF32LE_BOM[4] = {0x00, 0x00, 0xFF, 0xFE};
-
 typedef enum {
   conversionOK,           /* conversion successful */
   sourceExhausted,        /* partial character in source, but hit end */
@@ -151,11 +134,6 @@ typedef enum {
   strictConversion = 0,
   lenientConversion
 } ConversionFlags;
-
-/* This is for C++ and does no harm in C */
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 ConversionResult ConvertUTF8toUTF16 (
   const UTF8** sourceStart, const UTF8* sourceEnd,
@@ -199,14 +177,121 @@ Boolean isLegalUTF8String(const UTF8 **source, const UTF8 *sourceEnd);
 
 unsigned getNumBytesForUTF8(UTF8 firstByte);
 
-#ifdef __cplusplus
-}// end extern "C"
-}// end namespace llvm
+int getUTF8StringLength(const UTF8* utf8);	//sdragonx
 
-#include "convertUTF.c"
+/*************************************************************************/
+/* Below are LLVM-specific wrappers of the functions above. */
 
-#endif//__cplusplus
+#if 0 //sdragonx
 
-/* --------------------------------------------------------------------- */
+template <typename T> class ArrayRef;
+template <typename T> class SmallVectorImpl;
+class StringRef;
+
+/**
+ * Convert an UTF8 StringRef to UTF8, UTF16, or UTF32 depending on
+ * WideCharWidth. The converted data is written to ResultPtr, which needs to
+ * point to at least WideCharWidth * (Source.Size() + 1) bytes. On success,
+ * ResultPtr will point one after the end of the copied string. On failure,
+ * ResultPtr will not be changed, and ErrorPtr will be set to the location of
+ * the first character which could not be converted.
+ * \return true on success.
+ */
+bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
+                       char *&ResultPtr, const UTF8 *&ErrorPtr);
+
+/**
+* Converts a UTF-8 StringRef to a std::wstring.
+* \return true on success.
+*/
+bool ConvertUTF8toWide(llvm::StringRef Source, std::wstring &Result);
+
+/**
+* Converts a UTF-8 C-string to a std::wstring.
+* \return true on success.
+*/
+bool ConvertUTF8toWide(const char *Source, std::wstring &Result);
+
+/**
+* Converts a std::wstring to a UTF-8 encoded std::string.
+* \return true on success.
+*/
+bool convertWideToUTF8(const std::wstring &Source, std::string &Result);
+
+
+/**
+ * Convert an Unicode code point to UTF8 sequence.
+ *
+ * \param Source a Unicode code point.
+ * \param [in,out] ResultPtr pointer to the output buffer, needs to be at least
+ * \c UNI_MAX_UTF8_BYTES_PER_CODE_POINT bytes.  On success \c ResultPtr is
+ * updated one past end of the converted sequence.
+ *
+ * \returns true on success.
+ */
+bool ConvertCodePointToUTF8(unsigned Source, char *&ResultPtr);
+
+/**
+ * Convert the first UTF8 sequence in the given source buffer to a UTF32
+ * code point.
+ *
+ * \param [in,out] source A pointer to the source buffer. If the conversion
+ * succeeds, this pointer will be updated to point to the byte just past the
+ * end of the converted sequence.
+ * \param sourceEnd A pointer just past the end of the source buffer.
+ * \param [out] target The converted code
+ * \param flags Whether the conversion is strict or lenient.
+ *
+ * \returns conversionOK on success
+ *
+ * \sa ConvertUTF8toUTF32
+ */
+inline ConversionResult convertUTF8Sequence(const UTF8 **source,
+                                            const UTF8 *sourceEnd,
+                                            UTF32 *target,
+                                            ConversionFlags flags) {
+  if (*source == sourceEnd)
+    return sourceExhausted;
+  unsigned size = getNumBytesForUTF8(**source);
+  if ((ptrdiff_t)size > sourceEnd - *source)
+    return sourceExhausted;
+  return ConvertUTF8toUTF32(source, *source + size, &target, target + 1, flags);
+}
+
+/**
+ * Returns true if a blob of text starts with a UTF-16 big or little endian byte
+ * order mark.
+ */
+bool hasUTF16ByteOrderMark(ArrayRef<char> SrcBytes);
+
+/**
+ * Converts a stream of raw bytes assumed to be UTF16 into a UTF8 std::string.
+ *
+ * \param [in] SrcBytes A buffer of what is assumed to be UTF-16 encoded text.
+ * \param [out] Out Converted UTF-8 is stored here on success.
+ * \returns true on success
+ */
+bool convertUTF16ToUTF8String(ArrayRef<char> SrcBytes, std::string &Out);
+
+/**
+* Converts a UTF16 string into a UTF8 std::string.
+*
+* \param [in] Src A buffer of UTF-16 encoded text.
+* \param [out] Out Converted UTF-8 is stored here on success.
+* \returns true on success
+*/
+bool convertUTF16ToUTF8String(ArrayRef<UTF16> Src, std::string &Out);
+
+/**
+ * Converts a UTF-8 string into a UTF-16 string with native endianness.
+ *
+ * \returns true on success
+ */
+bool convertUTF8ToUTF16String(StringRef SrcUTF8,
+							  SmallVectorImpl<UTF16> &DstUTF16);
+
+#endif //if 0
+
+} /* end namespace llvm */
 
 #endif

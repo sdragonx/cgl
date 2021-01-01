@@ -1,0 +1,22 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ memlink.hpp
+
+ 2020-06-01 10:10:13
+
+*/
+#ifndef MEMLINK_HPP_20200601101013
+#define MEMLINK_HPP_20200601101013
+
+#include <cgl/public.h>
+
+namespace cgl{
+namespace vcl{
+namespace {
+
+}//end namespace
+}//end namespace vcl
+}//end namespace cgl
+
+#endif //MEMLINK_HPP_20200601101013

@@ -1,0 +1,76 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ mouse.hpp
+
+ 2015-09-07 03:51:12
+
+*/
+#ifndef MOUSE_HPP_20150907035112
+#define MOUSE_HPP_20150907035112
+
+#include <cgl/public.h>
+#include <cgl/vec.hpp>
+
+namespace cgl{
+
+class mouse_device
+{
+public:
+    typedef mouse_device this_type;
+    const static int left   = 0x0001;//MK_LBUTTON
+    const static int right  = 0x0002;//MK_RBUTTON
+    const static int middle = 0x0010;//MK_MBUTTON
+
+    int x;
+    int y;
+    int button;
+
+    vec2i last;
+    vec2i locale;
+    vec2i tile;
+
+    void* object;
+
+    //string_t resource;
+
+public:
+    mouse_device()
+    {
+    }
+
+    vec2i get_position()
+    {
+        POINT pt;
+        GetCursorPos(&pt);
+        x = pt.x;
+        y = pt.y;
+        return vec2i(x, y);
+    }
+
+    void set_position(int _x, int _y)
+    {
+        x = _x;
+        y = _y;
+        SetCursorPos(_x, _y);
+    }
+
+    void set_position(vec2i pos)
+    {
+        x = pos.x;
+        y = pos.y;
+    }
+
+    this_type& operator=(const vec2i& value)
+    {
+        x = value.x;
+        y = value.y;
+        return *this;
+    }
+};
+
+CGL_PUBLIC_DECLARE mouse_device mouse = mouse_device();
+
+} //end namespace cgl
+
+#endif //MOUSE_HPP_20150907035112

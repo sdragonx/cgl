@@ -264,7 +264,7 @@ public:
         if(is_invalid(x, y)){
             return ;
         }
-        pixels(x, y) = ::blend<T, T>(pixels(x, y), color, alpha);
+        pixels(x, y) = graphics::blend<T, T>(pixels(x, y), color, alpha);
     }
 
     void hline(int x1, int x2, int y, value_type c)

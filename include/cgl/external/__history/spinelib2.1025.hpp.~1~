@@ -1,0 +1,119 @@
+/*
+
+ spine2.1025.hpp
+
+ sdragonx 2018-01-14 12:02:09
+
+*/
+#ifndef SPINE2_1025_HPP_20180114120209
+#define SPINE2_1025_HPP_20180114120209
+
+#define SPINE_SHORT_NAMES
+
+#define CGL_SPINE_VERSION 21025
+
+#ifdef __BORLANDC__
+ #define SPINE_STD std::
+#else
+ #define SPINE_STD
+#endif
+
+#define SPINE_2_1025_FILE(f) <cgl/external/spine2.1025/f>
+
+namespace spine{
+
+#ifdef __STDC_VERSION__
+ #define fmodf   SPINE_STD fmod
+ #define _strdup SPINE_STD strdup
+
+float acosf(float n)
+{
+	if(n < -1.0f)n = -1.0f;
+	if(n > 1.0f)n = 1.0f;
+	return std::acos(n);
+}
+#endif
+
+}//spine
+
+#if defined(CGL_SPINE_STATIC_LIB) //static library
+
+#include <stdlib.h>
+
+namespace spine{
+
+extern "C"{
+
+#include SPINE_2_1025_FILE(spine.h)
+#include SPINE_2_1025_FILE(extension.h)
+
+}//extern "C"
+
+#pragma link "spine2.1.25.lib"
+
+}
+
+#else//include source
+
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
+namespace spine{
+
+#ifdef __BORLANDC__
+using SPINE_STD sprintf;
+using SPINE_STD sscanf;
+using SPINE_STD FILE;
+using SPINE_STD fopen;
+#endif
+
+inline int _stricmp(const char* s1, const char* s2)
+{
+	return SPINE_STD stricmp(s1, s2);
+}
+
+#ifdef __STDC_VERSION__
+
+#define sinf   SPINE_STD sin
+#define cosf   SPINE_STD cos
+#define atan2f SPINE_STD atan2
+#define sqrtf  SPINE_STD sqrt
+
+#endif
+
+extern "C"{
+
+#include SPINE_2_1025_FILE(Animation.c)
+#include SPINE_2_1025_FILE(AnimationState.c)
+#include SPINE_2_1025_FILE(AnimationStateData.c)
+#include SPINE_2_1025_FILE(Atlas.c)
+#include SPINE_2_1025_FILE(AtlasAttachmentLoader.c)
+#include SPINE_2_1025_FILE(Attachment.c)
+#include SPINE_2_1025_FILE(AttachmentLoader.c)
+#include SPINE_2_1025_FILE(Bone.c)
+#include SPINE_2_1025_FILE(BoneData.c)
+#include SPINE_2_1025_FILE(BoundingBoxAttachment.c)
+#include SPINE_2_1025_FILE(Event.c)
+#include SPINE_2_1025_FILE(EventData.c)
+#include SPINE_2_1025_FILE(extension.c)
+#include SPINE_2_1025_FILE(IkConstraint.c)
+#include SPINE_2_1025_FILE(IkConstraintData.c)
+#include SPINE_2_1025_FILE(Json.c)
+#include SPINE_2_1025_FILE(MeshAttachment.c)
+#include SPINE_2_1025_FILE(RegionAttachment.c)
+#include SPINE_2_1025_FILE(Skeleton.c)
+#include SPINE_2_1025_FILE(SkeletonBounds.c)
+#include SPINE_2_1025_FILE(SkeletonData.c)
+#include SPINE_2_1025_FILE(SkeletonJson.c)
+#include SPINE_2_1025_FILE(Skin.c)
+#include SPINE_2_1025_FILE(SkinnedMeshAttachment.c)
+#include SPINE_2_1025_FILE(Slot.c)
+#include SPINE_2_1025_FILE(SlotData.c)
+
+}//extern "C"
+}// end namespace spine
+
+#endif //CGL_SPINE_STATIC_LIB
+
+#endif//SPINE2_1025_HPP_20180114120209

@@ -58,6 +58,19 @@ void make_function()
     }
 }
 
+//c++11
+template<typename T>
+bool is_types()
+{
+    return false;
+}
+
+template<typename Left, typename Right, typename ...AnyT>
+bool is_types()
+{
+    return std::is_same<Left, Right>::value || is_types<Left, AnyT...>();
+}
+
 */
 #ifndef IS_TYPEOF_HPP_20200303223132
 #define IS_TYPEOF_HPP_20200303223132

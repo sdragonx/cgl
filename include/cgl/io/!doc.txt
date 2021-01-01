@@ -1,0 +1,50 @@
+
+template<typename char_type>
+size_t getLine(char_type* buf, size_t size, FILE* f)
+{
+	char_type* buf_begin = buf;
+	char_type* buf_end = buf+size;
+	for(; !feof(f) && buf<buf_end; )
+    {
+        fread(buf, sizeof(char_type), 1, f);
+        if(*buf == char_type('\n'))break;
+        if(*buf != '\r')
+        {
+        	++buf;
+        }
+    }
+
+    return buf - buf_begin;
+}
+
+int check_bom(FILE* f)
+{
+	char buf[4] = {0};
+    fseek(f, 0, SEEK_SET);
+    fread(buf, 4, 1, f);
+    const char UNI_UTF8_BOM[3] = {0xEF, 0xBB, 0xBF};
+    const char UNI_UTF16BE_BOM[2] = {0xFE, 0xFF};
+	const char UNI_UTF16LE_BOM[2] = {0xFF, 0xFE};
+	//const char UNI_UTF32BE_BOM[4] = {0x00, 0x00, 0xFE, 0xFF};
+	//const char UNI_UTF32LE_BOM[4] = {0x00, 0x00, 0xFF, 0xFE};
+    if(!memcmp(buf, UNI_UTF8_BOM, 3))
+    {
+    	fseek(f, 3, SEEK_SET);
+        return 8;
+    }
+    else if(!memcmp(buf, UNI_UTF16BE_BOM, 2))
+    {
+    	fseek(f, 2, SEEK_SET);
+        return 16;
+    }
+    else if(!memcmp(buf, UNI_UTF16LE_BOM, 2))
+    {
+    	fseek(f, 2, SEEK_SET);
+        return 16;
+    }
+    else
+    {
+    	fseek(f, 0, SEEK_SET);
+        return 0;
+    }
+}

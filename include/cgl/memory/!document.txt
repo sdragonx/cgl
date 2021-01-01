@@ -1,0 +1,15 @@
+template<typename T>
+class pool_item
+{
+public:
+	short x;
+	short y;
+	T data;
+};
+
+class pool
+{
+public:
+	typedef std::vector<pool_item<int> > pool_buffer;
+	std::vector<pool_buffer> m_buffers;
+};

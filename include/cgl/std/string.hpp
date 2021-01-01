@@ -110,6 +110,7 @@ template<>inline char* csset<char>(char* str, char ch, size_t size)
 	return strnset(str, ch, size);    
     #endif
 }
+
 template<>inline char8_t* csset<char8_t>(char8_t* str, char8_t ch, size_t size)
 {
     return (char8_t*)csset<char>((char*)(str), ch, size);

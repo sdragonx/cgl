@@ -1,0 +1,119 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ filebuf.hpp
+
+ 2018-08-11 08:57:37
+
+ read file to memory buffer
+
+*/
+#ifndef FILEBUF_HPP_20180811085737
+#define FILEBUF_HPP_20180811085737
+
+#include <cgl/public.h>
+#include <cgl/io/binfile.hpp>
+#include <cgl/memory/block.hpp>
+#include <vector>
+
+namespace cgl{
+namespace io{
+
+template<typename T>
+int load_file(memblock<byte_t>& block, const T* filename, bool set_eof = false)
+{
+    binfile f;
+    f.open(filename, io_read, sh_share);
+    if(!f.is_open()){
+        return -1;
+    }
+
+    fsize_t size = f.size();
+    if(size == FILE_SIZE_MAX){
+        return -2;
+    }
+
+    block.resize(size + (set_eof ? 1 : 0));
+    f.seek(0, SEEK_SET);
+    int readsize = f.read(block.data(), size);
+    if(readsize != size){
+        return -4;
+    }
+    if(set_eof)block[size] = '\0';
+    return 0;
+}
+
+template<typename T>
+int load_file(std::vector<byte_t>& block, const T* filename, bool set_eof = false)
+{
+    binfile f;
+    f.open(filename, io_read, sh_share);
+    if(!f.is_open()){
+        return -1;
+    }
+
+    fsize_t size = f.size();
+    if(size == FILE_SIZE_MAX){
+        return -2;
+    }
+
+    block.resize(size + (set_eof ? 1 : 0));
+    f.seek(0, SEEK_SET);
+    int readsize = f.read(&block[0], size);
+    if(readsize != size){
+        return -4;
+    }
+    if(set_eof)block[size] = '\0';
+    return 0;
+}
+
+//load_string
+template<typename _char_t, typename T>
+int load_file(cstring<_char_t>& text, const T* filename)
+{
+    binfile f;
+    f.open(filename, io_read, sh_share);
+    if(!f.is_open()){
+        return -1;
+    }
+
+    fsize_t size = f.size();
+    if(size == FILE_SIZE_MAX){
+        return -2;
+    }
+
+    text.resize((size + sizeof(_char_t) - 1) / sizeof(_char_t));
+    f.seek(0, SEEK_SET);
+    int readsize = f.read(text.data(), size);
+    if(readsize != size){
+        return -4;
+    }
+    return 0;
+}
+
+class filebuf
+{
+private:
+    memblock<byte_t> m_buf;
+public:
+    int open(const char* filename)
+    {
+        return load_file(m_buf, filename);
+    }
+
+    int open(const wchar_t* filename)
+    {
+        return load_file(m_buf, filename);
+    }
+
+    byte_t* data()
+    {
+        return m_buf.data();
+    }
+};
+
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //FILEBUF_HPP_20180811085737

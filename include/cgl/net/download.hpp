@@ -1,0 +1,116 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ download.hpp
+
+ 2020-04-01 14:57:30
+
+*/
+#ifndef DOWNLOAD_HPP_20200401145730
+#define DOWNLOAD_HPP_20200401145730
+
+#include <cgl/public.h>
+#include <cgl/thread.hpp>
+
+//400~500 消息
+//500+    下载进程
+
+#define WM_DOWNLOAD_BEGIN    (WM_USER + 100)
+#define WM_DOWNLOAD_END      (WM_USER + 101)
+
+//WParam : progress max
+//LParam : progress
+#define WM_DOWNLOAD_PROGRESS (WM_USER + 102)
+#define WM_DOWNLOAD_ERROR    (WM_USER + 128)
+
+#include <urlmon.h>
+#pragma comment(lib, "urlmon.lib")
+
+extern void download_log(const wchar_t* , const wchar_t* );
+
+namespace cgl{
+namespace {
+namespace {
+
+}//end namespace
+}//end namespace 
+}//end namespace cgl
+
+class DownLoadCallback : public IBindStatusCallback
+{
+public:
+    HWND Window;    //响应消息窗口
+    int id;
+
+public:
+    DownLoadCallback() : Window(NULL)
+    {
+    }
+    virtual ~DownLoadCallback()
+    {
+    }
+
+    STDMETHOD(OnStartBinding)(DWORD dwReserved, IBinding __RPC_FAR *pib)
+    {
+        return E_NOTIMPL;
+    }
+
+    STDMETHOD(GetPriority)(LONG __RPC_FAR *pnPriority)
+    {
+        return E_NOTIMPL;
+    }
+
+    STDMETHOD(OnLowResource)(DWORD reserved)
+    {
+        return E_NOTIMPL;
+    }
+
+    //OnProgress在这里
+    STDMETHOD(OnProgress)(ULONG ulProgress, ULONG ulProgressMax, ULONG ulStatusCode, LPCWSTR wszStatusText);
+    STDMETHOD(OnStopBinding)(HRESULT hresult, LPCWSTR szError){ return E_NOTIMPL; }
+    STDMETHOD(GetBindInfo)(DWORD __RPC_FAR *grfBINDF, BINDINFO __RPC_FAR *pbindinfo){ return E_NOTIMPL; }
+    STDMETHOD(OnDataAvailable)(DWORD grfBSCF, DWORD dwSize, FORMATETC __RPC_FAR *pformatetc, STGMEDIUM __RPC_FAR *pstgmed){ return E_NOTIMPL; }
+    STDMETHOD(OnObjectAvailable)(REFIID riid, IUnknown __RPC_FAR *punk){ return E_NOTIMPL; }
+    // IUnknown方法.IE 不会调用这些方法的
+    STDMETHOD_(ULONG,AddRef)(){ return 0; }
+    STDMETHOD_(ULONG,Release)(){ return 0; }
+    STDMETHOD(QueryInterface)(REFIID riid, void __RPC_FAR *__RPC_FAR *ppvObject){ return E_NOTIMPL; }
+};
+
+
+//仅实现OnProgress成员即可
+LRESULT __stdcall  DownLoadCallback::OnProgress(ULONG ulProgress,
+    ULONG ulProgressMax, ULONG ulSatusCode, LPCWSTR szStatusText)
+{
+    switch(ulSatusCode){
+    case BINDSTATUS_FINDINGRESOURCE:
+        break;
+    case BINDSTATUS_CONNECTING:
+        break;
+    case BINDSTATUS_BEGINDOWNLOADDATA:
+        //download_log(L"开始下载：", szStatusText);
+        SendMessage(Window, WM_DOWNLOAD_BEGIN, id, ulProgressMax);
+        break;
+    case BINDSTATUS_ENDDOWNLOADDATA:
+        download_log(L"下载完毕：", szStatusText);
+        //SendMessage(Window, WM_DOWNLOAD_END, 0, 0);
+        break;
+    case BINDSTATUS_DOWNLOADINGDATA:
+        SendMessage(Window, WM_DOWNLOAD_PROGRESS, id, ulProgress);
+        break;
+    case BINDSTATUS_PROXYDETECTING://32
+        break;
+    default:
+        //download_log(int(ulSatusCode));
+        break;
+    }
+
+    //通过ProgressBar->Enabled判断是否终止下载
+    //返回E_ABORT终止下载
+    //return ProgressBar->Enabled ? S_OK : E_ABORT;
+    return S_OK;
+}
+
+typedef DownLoadCallback download_state;
+
+#endif //DOWNLOAD_HPP_20200401145730

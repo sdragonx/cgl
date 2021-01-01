@@ -1,0 +1,418 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ webbrowser.hpp
+
+ 2018-01-17 18:06:59
+
+*/
+#ifndef WEBBROWSER_HPP_20180117180659
+#define WEBBROWSER_HPP_20180117180659
+
+#include <vcl.h>
+#include <SHDocVw.hpp>//TWebBrowser
+
+#include <mshtml.h>//IHTMLDocument3
+
+#include <UrlMon.h>
+#pragma comment(lib, "urlmon.lib")
+
+//#include <atl/atlbase.h>    //CComBSTR
+#ifndef __ATLBASE_H__
+#include <UTILCLS.H>
+#define CComPtr  TComInterface
+#define CComBSTR TOleString
+#endif
+
+#include <string>
+#include <fstream>
+using std::string;
+using std::ofstream;
+
+//DHTMLEDITCMDID 保存了一些命令
+
+static LPCOLESTR HTMLCMD_SAVEAS    = L"SaveAs";
+static LPCOLESTR HTMLCMD_CUT       = L"Cut";
+static LPCOLESTR HTMLCMD_COPY      = L"Copy";
+static LPCOLESTR HTMLCMD_PASTE     = L"Paste";
+static LPCOLESTR HTMLCMD_DELETE    = L"Delete";
+static LPCOLESTR HTMLCMD_FONTNAME  = L"FontName";
+static LPCOLESTR HTMLCMD_FONTSIZE  = L"FontSize";
+static LPCOLESTR HTMLCMD_FONTCOLOR = L"FontColor";
+static LPCOLESTR HTMLCMD_BOLD      = L"Bold";
+static LPCOLESTR HTMLCMD_ITALIC    = L"Italic";
+static LPCOLESTR HTMLCMD_UNDERLINE = L"Underline";
+static LPCOLESTR HTMLCMD_STRIKEOUT = L"StrikeThrough";
+static LPCOLESTR HTMLCMD_JustifyLeft   = L"JustifyLeft";
+static LPCOLESTR HTMLCMD_JustifyRight  = L"JustifyRight";
+static LPCOLESTR HTMLCMD_JustifyCenter = L"JustifyCenter";
+//Subscript下标  Superscript上标
+//LPCOLESTR HTMLCMD_ALIGNLEFT =
+static LPCOLESTR HTMLCMD_INDENT    = L"Indent";//缩进
+//Outdent
+//CreateLink 创建连接
+//InsertImage
+//EditMode
+//BrowerMode
+//
+
+static LPCOLESTR URL_NULL = L"about:blank";
+
+typedef CComPtr<IHTMLDocument2> HTMLDocument2;
+typedef CComPtr<IHTMLDocument3> HTMLDocument3;
+
+std::string wcs2utf8(const wchar_t* str)
+{
+    int length = WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL);
+    std::vector<char> utf8;
+    utf8.reserve(length);
+    WideCharToMultiByte(CP_UTF8, 0, str, -1, &utf8[0], length, NULL, NULL);
+    return std::string(&utf8[0], length);
+}
+
+//获得链接的文件名
+String URLFileName(const BSTR url)
+{
+    BSTR p1 = NULL, p2 = NULL;
+    p1 = wcsrchr(url, '\\');
+    if(!p1)p1 = wcsrchr(url, '/');
+    p2 = wcsrchr(p1, '?');
+    return p2 ? String(p1, p2-p1) : String(p1);
+}
+
+HTMLDocument2 GetDocument2(TWebBrowser *browser)
+{
+    HTMLDocument2 doc2;
+    browser->Document->QueryInterface(::IID_IHTMLDocument2, reinterpret_cast<void**>(&doc2));
+    return doc2;
+}
+
+//执行HTML命令
+HRESULT HTMLCommand(TWebBrowser *browser, const wchar_t* cmd, bool showUI, const TVariant& value, VARIANT_BOOL __RPC_FAR *pfRet)
+{
+    if(browser){
+        HTMLDocument2 doc2 = GetDocument2(browser);
+        return doc2->execCommand(const_cast<wchar_t*>(cmd), showUI, value, pfRet);
+    }
+    return S_FALSE;
+}
+
+inline bool WebBrowser_IsReady(TWebBrowser* WebBrowser)
+{
+    /*
+    return WebBrowser->ReadyState == Shdocvw::READYSTATE_COMPLETE;
+    /*/
+    return (WebBrowser->ReadyState != Shdocvw::READYSTATE_UNINITIALIZED) &&
+        (WebBrowser->ReadyState != Shdocvw::READYSTATE_LOADING);
+    //*/
+}
+
+void WebBrowser_EditMode(TWebBrowser* browser, bool bEdit)
+{
+    /*/if(WebBrowser_IsReady(WebBrowser))
+    {
+        IHTMLDocument2 *htmldoc2 = NULL;
+        WebBrowser->Document->QueryInterface(IID_IHTMLDocument2, (void **)&htmldoc2);
+        if(htmldoc2){
+            htmldoc2->put_designMode( bEdit ? L"on" : L"off" );
+            htmldoc2->Release();
+        }
+        else{
+            ShowMessage("err");
+        }
+    }
+    /*/
+    HTMLDocument2 doc2 = GetDocument2(browser);
+    if(bEdit){
+        doc2->execCommand(L"EditMode", true, TNoParam(), NULL);
+    }
+    else{
+        doc2->execCommand(L"browseMode", true, TNoParam(), NULL);
+    }
+    //*/
+}
+
+//放到DocumentComplete里面执行
+void WebBrowser_NoBorder(TWebBrowser* browser)
+{
+    HTMLDocument2 doc2 = GetDocument2(browser);
+    TComInterface<IHTMLElement> element;
+    doc2->get_body(&element);
+    if(element){
+        TComInterface<IHTMLStyle> style;
+        element->get_style(&style);
+        style->put_margin(L"none");
+        style->put_border(L"none");
+        style->put_padding(L"none");
+        //style->put_overflow(L"hidden");//隐藏滚动条
+    }
+}
+
+String WebBrowser_getHTMLCode(TWebBrowser* wb)
+{
+    IHTMLDocument3 *htmldoc3;
+    IHTMLElement *htmlElement;
+    BSTR htmlText;
+    String text;
+    wb->Document->QueryInterface(::IID_IHTMLDocument3, reinterpret_cast<void**>(&htmldoc3));
+    htmldoc3->get_documentElement(&htmlElement);
+    htmlElement->get_outerHTML(&htmlText);
+    //el->get_innerText(&text);
+    text = WideString(htmlText);
+    SysFreeString(htmlText);
+    htmlElement->Release();
+    htmldoc3->Release();
+    return text;
+}
+
+int HTML_SaveImages(IHTMLDocument2 *HTMLdoc2, String Path);
+int HTML_SaveCSS(IHTMLDocument2 *HTMLdoc2, String Path);
+//int HTML_SaveScripts(IHTMLDocument2 *HTMLdoc2, String Path);
+int HTML_Save(IHTMLDocument2 *HTMLdoc2, String FileName);
+int HTML_SaveDocument(LPDISPATCH Document, String FileName);
+
+int HTML_SaveFrames(IHTMLDocument2 *HTMLdoc2, String Path)
+{
+    IHTMLFramesCollection2 *pFrames   = NULL;
+    IHTMLWindow2           *pHTMLWnd  = NULL;
+    IHTMLDocument2         *pFramedoc2= NULL;
+    IHTMLElementCollection *pElements = NULL;
+    IHTMLStyleSheetsCollection *pStyles = NULL;
+    LPDISPATCH              lpDispatch = NULL;
+    long lLength = 0;
+    BSTR wcsURL  = NULL;
+    VARIANT vResult, vIndex;
+
+    if(FAILED(HTMLdoc2->get_frames(&pFrames)))
+    {
+        return -1;
+    }
+    pFrames->get_length(&lLength);
+
+    for(long i=0; i<lLength; i++)
+    {
+        vIndex.vt = VT_I2;
+        vIndex.lVal = i;
+        if(SUCCEEDED(pFrames->item(&vIndex, &vResult)))
+        {
+            lpDispatch = vResult.pdispVal;
+            if(SUCCEEDED(lpDispatch->QueryInterface(IID_IHTMLWindow2, (LPVOID*)&pHTMLWnd)))
+            {
+                if(SUCCEEDED(pHTMLWnd->get_document(&pFramedoc2)))
+                {
+                    if(SUCCEEDED(pFramedoc2->get_URL(&wcsURL)) && wcsURL)
+                    {
+                        if(wcsncmp(wcsURL, URL_NULL, wcslen(URL_NULL)))
+                        {
+                            HTML_SaveImages(pFramedoc2, Path);
+                            HTML_SaveCSS(pFramedoc2, Path);
+                            HTML_Save(pFramedoc2, Path+URLFileName(wcsURL));
+                            SysFreeString(wcsURL);
+                            wcsURL = NULL;
+                        }
+                    }
+                    pFramedoc2->Release();
+                    pFramedoc2 = NULL;
+                }
+                pHTMLWnd-> Release();
+                pHTMLWnd=NULL;
+            }
+            lpDispatch->Release();
+            lpDispatch = NULL;
+        }
+    }//end for
+    pFrames->Release();
+    pFrames = NULL;
+    return lLength;
+}
+
+int HTML_SaveImages(IHTMLDocument2 *HTMLdoc2, String Path)
+{
+    IHTMLElementCollection    *pElements   = NULL;
+    IHTMLImgElement         *pImgElement = NULL;
+    LPDISPATCH                 lpDispatch   = NULL;
+    VARIANT vTemp, vIndex;
+    long lLength = 0;
+    BSTR wcsImage = NULL;
+    String image;
+
+    if(FAILED(HTMLdoc2->get_images(&pElements)))
+    {
+        return -1;
+    }
+
+    pElements->get_length(&lLength);
+    for(long i=0; i<lLength; i++)
+    {
+        vIndex.vt = VT_I2;
+        vIndex.lVal = i;
+        pElements->item(vIndex, vTemp, &lpDispatch);
+        if(!lpDispatch)continue;
+        if(SUCCEEDED(lpDispatch->QueryInterface(
+                IID_IHTMLImgElement, (void **)&pImgElement)))
+        {
+            if(SUCCEEDED(pImgElement->get_src(&wcsImage)) && wcsImage)
+            {
+                image = Path + URLFileName(wcsImage);
+                URLDownloadToFile(NULL, wcsImage, image.c_str(), 0, 0);
+                pImgElement->put_src(image.c_str());
+                SysFreeString(wcsImage);
+                wcsImage = NULL;
+            }
+            pImgElement->Release();
+            pImgElement = NULL;
+        }
+        lpDispatch->Release();
+        lpDispatch = NULL;
+    }//end for
+    pElements->Release();
+    pElements = NULL;
+
+    return lLength;
+}
+
+int HTML_SaveCSS(IHTMLDocument2 *HTMLdoc2, String Path)
+{
+    IHTMLStyleSheetsCollection *pStyleColl = NULL;
+    IHTMLStyleSheet *pStyle = NULL;
+    long lLength = 0;
+    VARIANT vIndex, vDisp;
+    BSTR   wcsUrl;
+    String fname;
+
+    HTMLdoc2->get_styleSheets(&pStyleColl);
+    pStyleColl->get_length(&lLength);
+    for(long i=0; i<lLength; i++)
+    {
+        vIndex.vt = VT_I2;
+        vIndex.lVal = i;
+        pStyleColl->item(&vIndex, &vDisp);
+        if(vDisp.pdispVal == NULL)
+            continue;
+        if(SUCCEEDED(vDisp.pdispVal->QueryInterface(
+                IID_IHTMLStyleSheet, (void **)&pStyle)))
+        {
+            if(SUCCEEDED(pStyle->get_href(&wcsUrl)) && wcsUrl)
+            {
+                fname = Path + URLFileName(wcsUrl);
+                URLDownloadToFile(NULL, wcsUrl, fname.c_str(), 0, 0);
+                pStyle->put_href(fname.c_str());
+                SysFreeString(wcsUrl);
+                wcsUrl = NULL;
+            }
+            pStyle->Release();
+            pStyle = NULL;
+        }
+        vDisp.pdispVal->Release();
+        vDisp.pdispVal = NULL;
+    }
+    pStyleColl->Release();
+    pStyleColl = NULL;
+    return lLength;
+}
+
+/*
+int HTML_SaveScripts(IHTMLDocument2 *HTMLdoc2, String Path)
+{
+    IHTMLElementCollection    *pElements = NULL;
+    IHTMLScriptElement      *pScript   = NULL;
+    LPDISPATCH                 lpDispatch = NULL;
+    VARIANT vTemp, vIndex;
+    long lLength = 0;
+    BSTR wcsURL = NULL;
+    String fname;
+
+    if(SUCCEEDED(HTMLdoc2->get_scripts(&pElements)))
+    {
+        return 0;
+    }
+
+    pElements->get_length(&lLength);
+    for(long i=0; i<lLength; i++)
+    {
+        vIndex.vt = VT_I2;
+        vIndex.lVal = i;
+        pElements->item(vIndex, vTemp, &lpDispatch);
+        if(!lpDispatch)continue;
+        if(SUCCEEDED(lpDispatch->QueryInterface(
+                IID_IHTMLScriptElement, (void **)&pScript)))
+        {
+            pScript->get_src(&wcsURL);
+            fname = "temp_htm" + URLFileName(wcsURL);
+            //URLDownloadToFile(NULL, wcsImage, image.c_str(), 0, 0);
+            //pImgElement->put_src(image.c_str());
+            print(wcsURL);
+            print(fname);
+
+            SysFreeString(wcsURL);
+            wcsURL = NULL;
+            pScript->Release();
+            pScript = NULL;
+        }
+        lpDispatch->Release();
+        lpDispatch = NULL;
+    }
+    pElements->Release();
+    pElements = NULL;
+
+    return lLength;
+}
+//*/
+
+int HTML_Save(IHTMLDocument2 *HTMLdoc2, String FileName)
+{
+    HTMLDocument3 HTMLdoc3;
+    CComPtr<IHTMLElement>   HTMLelement;
+    BSTR text = NULL;
+    string str;
+    ofstream of;
+
+    if(FAILED(HTMLdoc2->QueryInterface(::IID_IHTMLDocument3, reinterpret_cast<void**>(&HTMLdoc3))) )
+    {
+        return -1;
+    }
+
+    if(SUCCEEDED(HTMLdoc3->get_documentElement(&HTMLelement)))
+    {
+        if(SUCCEEDED(HTMLelement->get_outerHTML(&text)))
+        {
+            str = wcs2utf8(text);
+            of.open(FileName.c_str(), ios::out|ios::trunc);
+            of<<str.c_str();
+            SysFreeString(text);
+            text = NULL;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+
+int HTML_SaveDocument(LPDISPATCH Document, String FileName)
+{
+    HTMLDocument2 HTMLdoc2;
+    if(FAILED(Document->QueryInterface(::IID_IHTMLDocument2, reinterpret_cast<void**>(&HTMLdoc2)) ) ){
+        return 0;
+    }
+
+    //HTMLdoc2->put_designMode(L"Off");
+
+    String fname = ExtractFileName(FileName);
+    String fpath = FileName;
+    fpath = fpath.SubString(1, fpath.Pos('.')-1) + L"_files";
+    MkDir(fpath);
+
+    HTML_SaveImages(HTMLdoc2, fpath);
+    HTML_SaveCSS(HTMLdoc2, fpath);
+    HTML_SaveFrames(HTMLdoc2, fpath);
+
+    //保存网页代码
+    HTML_Save(HTMLdoc2, FileName);
+
+    return 0;
+}
+
+
+
+#endif //WEBBROWSER_HPP_20180117180659
+

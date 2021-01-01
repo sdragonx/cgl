@@ -1,0 +1,251 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ unizip.hpp
+
+ 2020-05-26 17:04:04
+
+*/
+#ifndef UNIZIP_HPP_20200526170404
+#define UNIZIP_HPP_20200526170404
+
+#include "zip/typedef.hpp"
+#include "zip/pkcrypt.hpp"
+
+namespace cgl{
+namespace io{
+
+int unzip(std::vector<byte_t>& data, io::unifile* f, fsize_t offset, const char* password)
+{
+    ziplist z;
+    ziplist_read(z, f, offset);
+
+    if(z.type != io::zip_list::TYPE_FILE){
+        return ZIP_ERROR_DATA;
+    }
+
+    //移动指针到数据位置
+    f->seek(z.offset, SEEK_SET);
+    f->seek(4 + sizeof(ZIP_FILE32) + z.file32.name_length + z.file32.extra_size, SEEK_CUR);
+
+    //加密数据
+    if(z.file32.flag & ZIP_ENCRYPTED){
+        if(z.file32.compress_mode == ZIP_AES256){//AES
+            CGL_LOG("AES256加密文件");
+        }
+        else if(z.file32.compress_mode == ZIP_STORED || z.file32.compress_mode == ZIP_DEFLATED){//crypto
+            CGL_LOG("pkcrypto加密文件");
+            return pkunzip(data, f, z, password);
+        }
+        else{
+            CGL_LOG("unzip: unknown crypto method.");
+            return ZIP_ERROR_DECRYPT;
+        }
+    }
+    else{
+        if(z.file32.compress_mode == 0){//未压缩数据
+            CGL_LOG("数据类型：未压缩加密数据");
+            data.resize(z.file32.compressed_size);
+            f->read(&data[0], data.size());
+            return 0;
+        }
+        else if(z.file32.compress_mode == 8){//zlib
+            CGL_LOG("数据类型：压缩数据");
+            std::vector<byte_t> zbuffer;
+            zbuffer.resize(z.file32.compressed_size + 2);
+            zbuffer[0] = 0x78;
+            zbuffer[1] = 0x01;
+            f->read(&zbuffer[2], zbuffer.size());
+            cgl::uncompress(data, z.file32.source_size, &zbuffer[0], zbuffer.size());
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
+
+//
+// pkzip32
+//
+
+//使用传统加密算法压缩加密数据
+int zip32(io::unifile* f,
+    ziplist& z,
+    const char* filename,
+    const byte_t* data,
+    size_t size,
+    int level,
+    const char* password,
+    ZIP_CRYPTO_MODE encrypt_method = 0)
+{
+    memset(&z, 0, sizeof(z));
+
+    z.file32.crc32 = hash::crc32(data, size);
+    z.file32.name_length = strlen(filename);
+    std::vector<byte_t> zbuffer;
+    size_t i;
+
+    if(level != 0){
+        cgl::compress(zbuffer, data, size, level);
+    }
+
+//    print("压缩大小", compressed_size);
+//    print("源数据大小：", size);
+
+    const byte_t* zdata;
+    size_t compressed_size;
+    byte_t buffer[1024];
+    size_t buffer_size = 0;
+
+    //加密
+    if(password && encrypt_method != ZIP_CRYPTO_NONE){
+        z.file32.flag = ZIP_ENCRYPTED;
+
+        switch(encrypt_method){
+        case ZIP_CRYPTO_PKCRYPT:{
+                z.file32.unzip_version = ZIP_VER_14;
+
+                pkcrypt key;
+                key.init(password);
+
+                //随机压缩头
+                buffer_size = PKCRYPT_HEAD_SIZE;
+                srand((unsigned)time(0));
+                for (int i=0; i<PKCRYPT_HEAD_SIZE; i++){
+                    buffer[i] = rand() & 0xFF;
+                }
+
+                //设置校验位
+                buffer[11] = z.file32.crc32 >> 24;
+
+                //加密压缩头
+                for(i=0; i<PKCRYPT_HEAD_SIZE; ++i){
+                    buffer[i] = key.encode(buffer[i]);
+                }
+
+                if(level == 0){//存储
+                    z.file32.compress_mode = ZIP_STORED;
+                    zbuffer.resize(size);
+                    for(i=0; i<size; ++i){
+                        zbuffer[i] = key.encode(data[i]);
+                    }
+                    zdata = &zbuffer[0];
+                    compressed_size = size;
+                }
+                else{
+                    z.file32.compress_mode = ZIP_DEFLATED;
+                    //加密数据
+                    for(i=2; i<zbuffer.size(); ++i){
+                        zbuffer[i] = key.encode(zbuffer[i]);
+                    }
+                    zdata = &zbuffer[2];
+                    compressed_size = zbuffer.size() - 2;
+                }
+                z.file32.compressed_size = compressed_size + PKCRYPT_HEAD_SIZE;
+            }
+            break;
+        case ZIP_CRYPTO_AES128:
+        case ZIP_CRYPTO_AES192:
+        case ZIP_CRYPTO_AES256:
+            break;
+        default:
+            CGL_LOG_ERROR("zip: unknown crypto method.");
+            return ZIP_ERROR_ENCRYPT;
+        }
+    }
+    else{
+        z.file32.flag = 0;
+        if(level == 0){//存储
+            z.file32.unzip_version = ZIP_VER_A;
+            z.file32.compress_mode = ZIP_STORED;
+            zdata = data;
+            compressed_size = size;
+        }
+        else{//压缩
+            z.file32.unzip_version = ZIP_VER_14;
+            z.file32.compress_mode = ZIP_DEFLATED;
+            zdata = &zbuffer[2];
+            compressed_size = zbuffer.size() - 2;
+        }
+        z.file32.compressed_size = compressed_size;
+    }
+
+    f->writele<uint32_t>(io::ZIP_TYPE_FILE);
+    f->writele<uint16_t>(z.file32.unzip_version);
+    f->writele<uint16_t>(z.file32.flag);
+    f->writele<uint16_t>(z.file32.compress_mode);
+    f->writele<uint32_t>(0);                        //time
+    f->writele<uint32_t>(z.file32.crc32);
+    f->writele<uint32_t>(z.file32.compressed_size);
+    f->writele<uint32_t>(size);
+    f->writele<uint16_t>(z.file32.name_length);      //name_length
+    f->writele<uint16_t>(z.file32.extra_size);       //extra
+
+    //写入filename
+    f->write(filename, z.file32.name_length);
+
+    //写入extra
+    if(z.file32.extra_size){
+        f->write(z.extra, z.file32.extra_size);
+    }
+
+    //写入数据
+    f->write(buffer, buffer_size);  //加密头
+    f->write(zdata, compressed_size);
+
+    return f->tell();
+
+    /*
+    f->writele<uint16_t>(ZIP_VER_14);
+    f->writele<uint16_t>(ZIP_ENCRYPTED);
+    f->writele<uint16_t>(ZIP_DEFLATED);
+    f->writele<uint32_t>(0);    //time
+    f->writele<uint32_t>(crc);
+    f->writele<uint32_t>(zbuffer.size() - 2);
+    f->writele<uint32_t>(size);
+    f->writele<uint16_t>(name_length);  //name_length
+    f->writele<uint16_t>(0);            //extra
+    //文件头写入结束
+
+    //写入filename
+    f->write(filename, name_length);
+
+    pkcrypto key;
+    key.init(password);
+
+    //随机压缩头
+    byte_t head[12];
+    srand((unsigned)time(0));
+    for (int i=0; i<12; i++){
+        head[i] = rand() & 0xFF;
+    }
+
+    //设置校验位
+    head[11] = crc >> 24;
+
+    //加密压缩头
+    size_t i;
+    for(i=0; i<12; ++i){
+        head[i] = key.encode(head[i]);
+    }
+    f->write(head, 12);
+
+    //加密压缩数据
+    for(i=2; i<zbuffer.size(); ++i){
+        zbuffer[i] = key.encode(zbuffer[i]);
+    }
+    f->write(&zbuffer[2], zbuffer.size() - 2);
+    */
+
+    return f->tell();
+}
+
+
+
+
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //UNIZIP_HPP_20200526170404

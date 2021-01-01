@@ -1,0 +1,247 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ io_base.h
+
+ 2016-07-17 21:13:45
+
+*/
+#ifndef FILE_BASE_HPP_20160717211345
+#define FILE_BASE_HPP_20160717211345
+
+#include <cgl/public.h>
+#include <cgl/memory.hpp>
+#include <cgl/string.hpp>
+#include <cgl/io/io64.h>
+#include <cgl/io/fsync.hpp>
+
+//#include <conio.h>
+
+namespace cgl{
+
+//默认文件缓冲区大小 8K
+const size_t CGL_FILE_BUFFER_SIZE = 8192;
+
+//默认扇区大小 4k (传统512字节)
+const size_t CGL_FILE_SECTOR_SIZE = 4096;
+
+
+//读写方式
+const int io_read     = 0x01;//读打开文件，如果文件不存在，返回错误
+const int io_write    = 0x02;//写打开文件，如果文件不存在，返回错误
+const int io_create   = 0x04;//创建文件
+const int io_trunc    = 0x08;//清空文件 truncate
+const int io_append   = 0x10;//文件指针在末尾
+const int io_nobuffer = 0x20;//不使用缓存区
+
+//读写类库
+const int io_memory   = 0x0100;//打开内存区块
+const int io_stream   = 0x0200;//
+const int io_storage  = 0x0400;//打开文档文件
+
+const int io_block    = 0x0100;//打开block，目标文件必须为io_storage
+const int io_zip      = 0x0200;//打开zip文档文件
+
+const int io_archive  = 0x8000;//打开归档文件，可以是block，可以是zip
+
+//SEEK
+const int seek_begin   = SEEK_SET;
+const int seek_current = SEEK_CUR;
+const int seek_end     = SEEK_END;
+
+//共享方式
+const uint8_t sh_none  = 0x00;
+const uint8_t sh_read  = 0x01;
+const uint8_t sh_write = 0x02;
+const uint8_t sh_share = 0x03;
+
+//
+//文件属性
+//
+
+//通用属性
+const int fa_readonly  = 0x01; //只读
+const int fa_hidden    = 0x02; //隐藏
+const int fa_system    = 0x04; //系统
+const int fa_volid     = 0x08; //VolumeID
+const int fa_directory = 0x10; //目录
+const int fa_archive   = 0x20; //存档
+const int fa_any       = 0x3F;
+const int fa_device    = 0x40; //保留
+const int fa_deleted   = 0x80; //文件删除标志; FILE_ATTRIBUTE_NORMAL 正常
+
+//WINNT属性
+const int fa_temp       = 0x0100;   //临时             FILE_ATTRIBUTE_TEMPORARY
+const int fa_sparse     = 0x0200;   //稀疏文件         FILE_ATTRIBUTE_SPARSE_FILE
+const int fa_link       = 0x0400;   //超链接或快捷方式 FILE_ATTRIBUTE_REPARSE_POINT
+const int fa_compressed = 0x0800;   //压缩             FILE_ATTRIBUTE_COMPRESSED
+const int fa_offline    = 0x1000;   //脱机             FILE_ATTRIBUTE_OFFLINE
+const int fa_indexed    = 0x2000;   //索引             FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+const int fa_encrypted  = 0x4000;   //加密             FILE_ATTRIBUTE_ENCRYPTED
+const int fa_undefined  = 0x8000;
+
+const int fa_virtual    = 0x010000; //虚拟             FILE_ATTRIBUTE_VIRTUAL
+
+//文件系统操作
+const int fa_child      = 0x01000000; //子目录
+const int fa_subdir     = 0x01000000; //子目录
+const int fa_overwrite  = 0x02000000; //覆盖操作
+
+
+#pragma pack(push, 1)
+
+typedef union __FILE_ATTRIB
+{
+    struct{
+        uint8_t readonly  :1; //0x01;
+        uint8_t hidden    :1; //0x02;
+        uint8_t system    :1; //0x04;
+        uint8_t volid     :1; //0x08;
+        uint8_t directory :1; //0x10;
+        uint8_t archive   :1; //0x20;
+        uint8_t device    :1; //0x40;
+        uint8_t deleted   :1; //0x80;
+        uint8_t temporary :1;
+        uint8_t sparse    :1;
+        uint8_t link      :1;
+        uint8_t compressed:1; //0x0800
+        uint8_t offline   :1;
+        uint8_t indexed   :1;
+        uint8_t encrypted :1;
+        uint8_t undefind  :1;
+    };
+    uint16_t value;
+}FILE_ATTRIB;
+#pragma pack(pop)
+
+//文件操作返回值
+const int FILE_SUCCESS          =  0;
+const int FILE_ERROR            = -1;
+const int FILE_NOT_EXISTS       = -2;
+const int FILE_OPEN_ERROR       = -3;
+const int FILE_IS_DIRECTORY     = -4;
+const int FILE_INVALID_SIZE     = -5;
+const int FILE_INVALID_FORMAT   = -6;
+
+const char file_error_text
+
+/*
+typedef io_object *io_handle;
+io_handle fopen(const char* fn, int mode, int share);
+io_handle fopen(const wchar_t* fn, int mode, int share);
+int fclose(io_handle& io);
+
+io_handle io_open(const char* fn, int mode, int share)
+{
+    return fopen(fn, mode, share);
+}
+io_handle io_open(const wchar_t* fn, int mode, int share)
+{
+    return fopen(fn, mode, share);
+}
+int io_close(io_handle& io)
+{
+    return fclose(io);
+}
+*/
+
+namespace io{
+namespace internal{
+
+//移动文件指针
+int set_seekpos(fsize_t& seekpos, fsize_t size, fsize_t pos, int whence)
+{
+    switch(whence){
+    case seek_begin:
+        seekpos = pos;
+        break;
+    case seek_current:
+        seekpos += pos;
+        break;
+    case seek_end:
+        seekpos = size - pos;
+        break;
+    default:
+        return FILE_ERROR;
+    }
+    return 0;
+}
+
+//检查数据读取长度，返回可读取长度
+fsize_t check_read(fsize_t seekpos, fsize_t filesize, fsize_t size)
+{
+    if(seekpos < 0 || seekpos >= filesize){
+        return 0;
+    }
+    if(seekpos + size >= filesize){
+        size = filesize - seekpos;
+    }
+    return size;
+}
+
+}//end namespace internal
+
+
+template<typename T>
+class ls_data
+{
+public:
+    fsize_t address;
+    cstring<T> name;
+
+public:
+    ls_data() : address(), name()
+    {
+
+    }
+};
+
+template<typename T>
+class archive_base
+{
+protected:
+    cstring<T> m_name;  //file mode
+    const void* m_link; //memory mode
+    size_t m_size;      //memory size
+    int m_mode;
+    string_t m_password;
+
+public:
+    archive_base():m_name(), m_mode() { /*void*/ }
+    virtual ~archive_base() { /*void*/ }
+
+    cstring<T> name()const
+    {
+        return m_name;
+    }
+
+    int mode()const
+    {
+        return m_mode;
+    }
+
+    virtual int open(const char* file_name, int mode, int share)=0;
+    virtual int open(const wchar_t* file_name, int mode, int share)=0;
+    virtual int open_memory(const void* data, size_t size)=0;
+    virtual void close()=0;
+    virtual bool is_open()const=0;
+
+    void set_password(const string_t& password)
+    {
+        m_password = password;
+    }
+
+    //ls_data.address == 0    从头开始查找
+    //return true 查找成功 false 查找结束
+    virtual bool ls(ls_data<T>& data)=0;
+
+    // rewind()
+    // next()
+    // filename()
+    // attrib
+};
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //FILE_BASE_HPP_20160717211345

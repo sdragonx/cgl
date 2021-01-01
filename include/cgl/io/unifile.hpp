@@ -1,0 +1,208 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ unifile.hpp
+
+ 2018-12-02 16:24:33
+
+*/
+#ifndef UNIFILE_HPP_20181202162433
+#define UNIFILE_HPP_20181202162433
+
+#include "base.hpp"
+
+namespace cgl{
+namespace io{
+
+class unifile
+{
+public:
+    typedef unifile this_type;
+
+protected:
+    union{//handle
+        unifile* m_file;    //for link
+        handle_t m_handle;  //for io handle
+        STD::FILE*    m_stdio;   //for FILE
+        intptr_t m_id;
+        void*       m_data; //memory
+        const void* m_cdata;
+    };
+    cstring<char> m_name;
+    int m_mode;
+    int m_errno;
+
+public:
+    unifile() : m_id(), m_name(), m_mode(), m_errno()
+    {
+    }
+
+    virtual ~unifile()
+    {
+        this->close();
+    }
+
+    /*
+    fsize_t id()const
+    {
+        return m_id;
+    }
+    */
+
+    cstring<char> name()const { return m_name; }
+    int mode()const { return m_mode; }
+    int error()const { return m_errno; }
+
+    //file directory device link
+    //virtual int type()const{ return 0; }
+
+    virtual int open(const char* fn, int mode, int share = sh_share) { return FILE_ERROR; }
+    virtual int open(const wchar_t* fn, int mode, int share = sh_share) { return FILE_ERROR; }
+
+    int open(const char8_t* fn, int mode, int share = sh_share);
+    int open(const char16_t* fn, int mode, int share = sh_share);
+    int open(const char32_t* fn, int mode, int share = sh_share);
+
+    virtual void close() { /*void*/ }
+    virtual bool is_open() { return false; }
+    virtual fsize_t seek(fsize_t pos, int whence) { return FILE_ERROR; }
+    virtual fsize_t tell() { return FILE_ERROR; }
+    virtual fsize_t size() { return FILE_ERROR; }
+    virtual fsize_t resize(fsize_t size) { return FILE_ERROR; }
+    virtual fsize_t read(void* data, fsize_t size) { return FILE_ERROR; }
+    virtual fsize_t write(const void* data, fsize_t size) { return FILE_ERROR; }
+    virtual void flush() { /*void*/ }
+
+    //bool eof() { return this->size() - 1 < this->tell(); }
+    bool eof() { return this->size() <= this->tell(); }
+
+public://byte order
+    template<typename T>
+    int readle(T& value)
+    {
+        size_t n = this->read(&value, sizeof(T));
+        if(big_endian()){
+            bswap<T>(&value);
+        }
+        return n;
+    }
+
+    template<typename T>
+    int writele(T value)
+    {
+        if(big_endian()){
+            bswap<T>(&value);
+        }
+        return this->write(&value, sizeof(T));
+    }
+
+    template<typename T>
+    int readbe(T& value)
+    {
+        size_t n = this->read(&value, sizeof(T));
+        if(!big_endian()){
+            bswap<T>(&value);
+        }
+        return n;
+    }
+
+    template<typename T>
+    int writebe(T value)
+    {
+        if(!big_endian()){
+            bswap<T>(&value);
+        }
+        return this->write(&value, sizeof(T));
+    }
+
+    byte_t getc()
+    {
+        byte_t c;
+        this->read(&c, 1);
+        return c;
+    }
+
+/*
+public:
+
+    int mkdir(const wchar_t* f)
+    {
+        return 0;
+    }
+
+    int rmdir(const wchar_t* f)
+    {
+        return 0;
+    }
+
+    //create()
+
+    //remove()
+
+    int ls();
+
+*/
+private:
+    unifile(const this_type&) { /*cannot structure*/ }
+    unifile& operator = (const this_type& ) { /*cannot copy*/ return *this; }
+
+public:
+    int save(const char* fn);
+    int save(const wchar_t* fn);
+
+    int save(unifile * io)
+    {
+        CGL_ASSERT(io->is_open());
+        byte_t  buf[CGL_FILE_BUFFER_SIZE];
+        fsize_t size;
+        io->resize(this->size());
+        io->seek(0, seek_begin);
+        this->seek(0, seek_begin);
+        while(!this->eof())
+        {
+            size = this->read(buf, CGL_FILE_BUFFER_SIZE);
+            io->write(buf, size);
+        }
+        return 0;
+    }
+};
+
+int unifile::open(const char8_t* fn, int mode, int share)
+{
+    #ifdef CGL_PLATFORM_ANDROID
+        return this->open((char*)fn, mode, share);
+    #else
+        return this->open(unistring(fn).c_str(), mode, share);
+    #endif
+}
+
+int unifile::open(const char16_t* fn, int mode, int share)
+{
+    #ifdef CGL_PLATFORM_ANDROID
+        return this->open(string_t(fn).c_str(), mode, share);
+    #else
+        #if __SIZEOF_WCHAR_T__ == 2
+        return this->open((wchar_t*)fn, mode, share);
+        #else
+        return this->open(unistring(fn).c_str(), mode, share);
+        #endif
+    #endif
+}
+
+int unifile::open(const char32_t* fn, int mode, int share)
+{
+    #ifdef CGL_PLATFORM_ANDROID
+        return this->open(string_t(fn).c_str(), mode, share);
+    #else
+        #if __SIZEOF_WCHAR_T__ == 2
+        return this->open(unistring(fn).c_str(), mode, share);
+        #else
+        return this->open((wchar_t*)fn, mode, share);
+        #endif
+    #endif
+}
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //UNIFILE_HPP_20181202162433

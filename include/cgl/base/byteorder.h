@@ -63,6 +63,7 @@ inline bool big_endian()
     return (1 != reinterpret_cast<char*>(&v)[0]);
 }
 
+#define CGL_BITSWAP_MACRO
 #ifdef CGL_BITSWAP_MACRO
 
 #define bswap8(x)  ((x) & 0xFF)
@@ -73,11 +74,7 @@ inline bool big_endian()
 #else
 
 inline uint8_t  bswap8 (uint8_t  x){ return x; }
-//inline uint16_t bswap16(uint16_t x){ return (uint16_t(bswap8 (x)) << 8 ) | bswap8 (x >> 8 ); }
-//inline uint32_t bswap32(uint32_t x){ return (uint32_t(bswap16(x)) << 16) | bswap16(x >> 16); }
-//inline uint64_t bswap64(uint64_t x){ return (uint64_t(bswap32(x)) << 32) | bswap32(x >> 32); }
-
-inline uint16_t bswap16(uint16_t x){ return (uint16_t(bswap8 (x)) << 8 ) | bswap16 (x >> 8 ); }
+inline uint16_t bswap16(uint16_t x){ return (uint16_t(bswap8 (x)) << 8 ) | bswap8 (x >> 8 ); }
 inline uint32_t bswap32(uint32_t x){ return (uint32_t(bswap16(x)) << 16) | bswap16(x >> 16); }
 inline uint64_t bswap64(uint64_t x){ return (uint64_t(bswap32(x)) << 32) | bswap32(x >> 32); }
 
@@ -123,7 +120,7 @@ inline uint32_t be_conv32(uint32_t x)
     return big_endian() ? x : bswap32(x);
 }
 
-inline uint64_t be_conv64(uint32_t x)
+inline uint64_t be_conv64(uint64_t x)
 {
     return big_endian() ? x : bswap64(x);
 }
@@ -154,7 +151,7 @@ inline uint32_t le_conv32(uint32_t x)
     return big_endian() ? bswap32(x) : x;
 }
 
-inline uint64_t le_conv64(uint32_t x)
+inline uint64_t le_conv64(uint64_t x)
 {
     return big_endian() ? bswap64(x) : x;
 }

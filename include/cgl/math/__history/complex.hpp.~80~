@@ -1,0 +1,239 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ complex.hpp
+
+ 2020-11-05 07:22:59
+
+*/
+#ifndef COMPLEX_HPP_20201105072259
+#define COMPLEX_HPP_20201105072259
+
+#include <cgl/public.h>
+
+namespace cgl{
+namespace math{
+
+template<typename T>
+class complex
+{
+public:
+    typedef complex this_type;
+    typedef T value_type;
+
+    union{
+        value_type data[2];
+        struct{
+            value_type real;
+            value_type imag;
+        };
+    };
+
+public:
+    complex() : real(), imag()
+    {
+    }
+
+    complex(value_type r, value_type i) : real(r), imag(i)
+    {
+    }
+
+    complex(const this_type& other) : real(other.real), imag(other.imag)
+    {
+    }
+
+    this_type& operator=(value_type v)
+    {
+        real = v;
+        imag = 0;
+        return *this;
+    }
+
+    this_type& operator=(const this_type& c)
+    {
+        real = c.real;
+        imag = c.imag;
+        return *this;
+    }
+
+    this_type operator+(value_type v)
+    {
+        return this_type(real + v, imag);
+    }
+
+    this_type operator-(value_type v)
+    {
+        return this_type(real - v, imag);
+    }
+
+    this_type operator*(value_type v)
+    {
+        return this_type(real * v, imag * v);
+    }
+
+    this_type operator/(value_type v)
+    {
+        return this_type(real / v, imag / v);
+    }
+
+    this_type& operator+=(value_type v)
+    {
+        real += v;
+        return *this;
+    }
+
+    this_type& operator-=(value_type v)
+    {
+        real -= v;
+        return *this;
+    }
+
+    this_type& operator*=(value_type v)
+    {
+        real *= v;
+        imag *= v;
+        return *this;
+    }
+
+    this_type& operator/=(value_type v)
+    {
+        real /= v;
+        imag /= v;
+        return *this;
+    }
+
+    this_type operator+(const this_type& c)
+    {
+        return this_type(real + c.real, imag + c.imag);
+    }
+
+    this_type operator-(const this_type& c)
+    {
+        return this_type(real - c.real, imag - c.imag);
+    }
+
+    this_type operator*(const this_type& c)
+    {
+        return this_type(real * c.real - imag * c.imag, real * c.imag + imag * c.real);
+    }
+
+    this_type operator/(const this_type& c)
+    {
+        this_type t;
+        div(*this, c, t);
+        return t;
+    }
+
+    this_type& operator+=(const this_type& c)
+    {
+        real += c.real;
+        imag += c.imag;
+        return *this;
+    }
+
+    this_type& operator-=(const this_type& c)
+    {
+        real -= c.real;
+        imag -= c.imag;
+        return *this;
+    }
+
+    this_type& operator*=(const this_type& c)
+    {
+        value_type t = real * c.real - imag * c.imag;
+        imag = real * c.imag + imag * c.real;
+        real = t;
+        return *this;
+    }
+
+    this_type& operator/=(const this_type& c)
+    {
+        div(*this, c, *this);
+        return *this;
+    }
+
+    static void mul(const this_type& a, const this_type& b, this_type& c)
+    {
+        value_type real = a.real * b.real - a.imag * b.imag
+        value_type imag = real * c.imag + imag * c.real;
+        c.real = real;
+        c.imag = imag;
+    }
+
+    static void div(const this_type& a, const this_type& b, this_type& c)
+    {
+        value_type f = b.dot();
+        value_type real = (a.real * b.real + a.imag * b.imag) / f;
+        value_type imag = (a.imag * b.real - a.real * b.imag) / f;
+        c.real = real;
+        c.imag = imag;
+    }
+
+    this_type operator++()
+    {
+        return this_type(++real, imag);
+    }
+
+    this_type operator++(int)
+    {
+        return this_type(real++, imag);
+    }
+
+    this_type operator--()
+    {
+        return this_type(--real, imag);
+    }
+
+    this_type operator--(int)
+    {
+        return this_type(real--, imag);
+    }
+
+    value_type dot()const
+    {
+        return real * c.real + imag * imag;
+    }
+
+    value_type abs()const
+    {
+        return sqrt(real * c.real + imag * imag);
+    }
+
+    this_type sqaurt()const
+    {
+        value_type n = this->abs();
+        return this_type(sqrt(n + c.real) / 2), sqrt(n - real) / 2));
+    }
+
+    int compare(const this_type& c)
+    {
+        value_type a = this->abs();
+        value_type b = c.abs();
+        if(is_zero(a - b)){
+            return 0;
+        }
+        else{
+            if(a < b){
+                return -1;
+            }
+            else{
+                return 1;
+            }
+        }
+    }
+
+    bool operator==(const this_type& c)
+    {
+        return ((real == c.real) && (imag == c.imag));
+    }
+
+    bool operator!=(const this_type& c)
+    {
+        return ((real != c.real) || (imag != c.imag));
+    }
+};
+
+}//end namespace math
+}//end namespace cgl
+
+#endif //COMPLEX_HPP_20201105072259

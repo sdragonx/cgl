@@ -275,7 +275,10 @@ enum {
     #define TYPENAME typename
     #define CGL_INLINE __forceinline
 
-	#define _CRT_SECURE_NO_WARNINGS	//不显示CRT安全函数警告
+	//#define _CRT_SECURE_NO_WARNINGS	//不显示CRT安全函数警告
+
+    #pragma warning(disable:4244)       //数据转换，可能丢失数据
+    #pragma warning(disable:4996)       //The POSIX name for this item is deprecated
 
 	#undef min
 	#undef max

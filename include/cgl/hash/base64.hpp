@@ -1,8 +1,9 @@
 /*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
 
  base64.hpp
 
- sdragonx 2017-01-06 18:59:36
+ 2017-01-06 18:59:36
 
 */
 #ifndef BASE64_HPP_20170106185936
@@ -10,76 +11,80 @@
 
 #include <cgl/public.h>
 
-_CGL_BEGIN
+#ifdef CGL_PLATFORM_CBUILDER
+#pragma option push
+#pragma option -w-8004      //is assigned a value that is never used
+#endif
+
+namespace cgl{
+namespace hash{
 
 size_t base64_encode_size(size_t size)
 {
-	return (size+2)/3*4;
+    return (size + 2) / 3 * 4;
 }
 
 size_t base64_decode_size(size_t size)
 {
-	size = size*3/4;
-	size = (size + 3) & (~3);
-	return size;
+    size = size * 3 / 4;
+    size = (size + 3) & (~3);
+    return size;
 }
 
 size_t base64_encode(byte_t* pout, const byte_t* pin, size_t size)
 {
     //编码表
-    const char EncodeTable[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	//返回值
-	byte_t* p = pout;
-	byte_t temp[4] = {0};
-	//size_t length = 0;
-	for(size_t i=0; i<size/3; ++i)
-	{
-		temp[1] = *pin++;
-		temp[2] = *pin++;
-		temp[3] = *pin++;
-		*p++ = EncodeTable[temp[1] >> 2];
-		*p++ = EncodeTable[((temp[1] << 4) | (temp[2] >> 4)) & 0x3F];
-		*p++ = EncodeTable[((temp[2] << 2) | (temp[3] >> 6)) & 0x3F];
+    const char EncodeTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    //返回值
+    byte_t* p = pout;
+    byte_t temp[4] = {0};
+
+    //size_t length = 0;
+    for(size_t i=0; i<size/3; ++i){
+        temp[1] = *pin++;
+        temp[2] = *pin++;
+        temp[3] = *pin++;
+        *p++ = EncodeTable[temp[1] >> 2];
+        *p++ = EncodeTable[((temp[1] << 4) | (temp[2] >> 4)) & 0x3F];
+        *p++ = EncodeTable[((temp[2] << 2) | (temp[3] >> 6)) & 0x3F];
         *p++ = EncodeTable[temp[3] & 0x3F];
         /*
-		if(length+=4, length==76)
-		{
-			*p++ = '\r';
-			*p++ = '\n';
-			length=0;
-		}
+        if(length+=4, length==76){
+            *p++ = '\r';
+            *p++ = '\n';
+            length=0;
+        }
         */
     }
     //对剩余数据进行编码
     int m = size % 3;
-	if(m == 1)
-	{
-		temp[1] = *pin++;
-		*p++ = EncodeTable[(temp[1] & 0xFC) >> 2];
-		*p++ = EncodeTable[((temp[1] & 0x03) << 4)];
-		*p++ = '=';
-		*p++ = '=';
-	}
-	else if(m == 2)
-    {
-		temp[1] = *pin++;
+    if(m == 1){
+        temp[1] = *pin++;
+        *p++ = EncodeTable[(temp[1] & 0xFC) >> 2];
+        *p++ = EncodeTable[((temp[1] & 0x03) << 4)];
+        *p++ = '=';
+        *p++ = '=';
+    }
+    else if(m == 2){
+        temp[1] = *pin++;
         temp[2] = *pin++;
-		*p++ = EncodeTable[(temp[1] & 0xFC) >> 2];
-		*p++ = EncodeTable[((temp[1] & 0x03) << 4) | ((temp[2] & 0xF0) >> 4)];
-		*p++ = EncodeTable[((temp[2] & 0x0F) << 2)];
-		*p++ = '=';
-	}
+        *p++ = EncodeTable[(temp[1] & 0xFC) >> 2];
+        *p++ = EncodeTable[((temp[1] & 0x03) << 4) | ((temp[2] & 0xF0) >> 4)];
+        *p++ = EncodeTable[((temp[2] & 0x0F) << 2)];
+        *p++ = '=';
+    }
 
-	return p-pout;
+    return p-pout;
 }
 
-size_t base64_decode(byte_t* pout, const byte_t* pin, int size)
+size_t base64_decode(byte_t* pout, const byte_t* pin, size_t size)
 {
     //解码表
-    const char DecodeTable[] =
-    {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    const char DecodeTable[] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         62, // '+'
         0, 0, 0,
         63, // '/'
@@ -92,37 +97,38 @@ size_t base64_decode(byte_t* pout, const byte_t* pin, int size)
         39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, // 'a'-'z'
     };
 
-	byte_t* p = pout;
-	int value;
-	for(int i=0; i < size; )
-    {
-        if (*pin != '\r' && *pin!='\n')
-        {
-            value = DecodeTable[*pin++] << 18;
+    byte_t* p = pout;
+    int value;
+    for(size_t i=0; i < size; ){
+        if (*pin != '\r' && *pin!='\n'){
+            value =  DecodeTable[*pin++] << 18;
             value += DecodeTable[*pin++] << 12;
-			*p++ = (value & 0x00FF0000) >> 16;
-			if (*pin != '=')
-			{
-				value += DecodeTable[*pin++] << 6;
-				*p++ = (value & 0x0000FF00) >> 8;
-				if (*pin != '=')
-				{
-					value += DecodeTable[*pin++];
-					*p++ = value & 0x000000FF;
+            *p++ = (value & 0x00FF0000) >> 16;
+            if (*pin != '='){
+                value += DecodeTable[*pin++] << 6;
+                *p++ = (value & 0x0000FF00) >> 8;
+                if (*pin != '='){
+                    value += DecodeTable[*pin++];
+                    *p++ = value & 0x000000FF;
                 }
             }
             i += 4;
         }
-        else// 回车换行,跳过
-        {
-            pin++;
-            i++;
+        else{// 回车换行,跳过
+            ++pin;
+            ++i;
         }
-	 }
-	*p = '\0';
-    return p-pout;
+     }
+    *p = '\0';
+
+    return p - pout;
 }
 
-_CGL_END
+}//end namespace hash
+}//end namespace cgl
+
+#ifdef CGL_PLATFORM_CBUILDER
+#pragma option pop
+#endif
 
 #endif //BASE64_HPP_20170106185936

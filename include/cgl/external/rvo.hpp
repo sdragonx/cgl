@@ -1,0 +1,27 @@
+/*
+
+ rvo.hpp
+
+ sdragonx 2019-07-16 14:03:39
+
+*/
+#ifndef RVO_HPP_20190716140339
+#define RVO_HPP_20190716140339
+
+#include "rvo2/src/rvo.h"
+
+#include "rvo2/src/KdTree.h"
+#include "rvo2/src/Agent.h"
+#include "rvo2/src/RVOSimulator.h"
+#include "rvo2/src/Obstacle.h"
+
+#include "rvo2/src/Agent.cpp"
+#include "rvo2/src/KdTree.cpp"
+#include "rvo2/src/Obstacle.cpp"
+#include "rvo2/src/RVOSimulator.cpp"
+
+namespace cgl{
+
+}//end namespace cgl
+
+#endif //RVO_HPP_20190716140339

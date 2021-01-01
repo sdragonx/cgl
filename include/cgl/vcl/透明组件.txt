@@ -1,0 +1,153 @@
+
+#include <cgl/graphics/pixel.hpp>
+#include <cgl/graphics/color.hpp>
+
+//
+// graymap
+//
+template<typename T>
+int graymap(pixelimage& image, const pixelbuffer<T>& source)
+{
+    image.create(source.width(), source.height(), CGL_ALPHA, false);
+    byte_t* p = image.scanline(0);
+    for(int y=0; y<image.height(); ++y){
+        for(int x=0; x<image.width(); ++x){
+            p[x] = gray_weight(source[y][x]);
+        }
+        p += image.linebytes();
+    }
+    return 0;
+}
+
+void alpha_channel_blt(pixelbuffer<uint32_t>& dest, int x, int y, const pixelimage& source)
+{
+    const byte_t* p = source.scanline(0);
+    for(int y=0; y<dest.height(); ++y){
+        for(int x=0; x<dest.width(); ++x){
+            dest[y][x] |= (p[x] * 2) << 24;
+        }
+        p += source.linebytes();
+    }
+}
+
+class TImageXE : public TGraphicControl
+{
+private:
+    Graphics::TBitmap *FBitmap;
+    Graphics::TBitmap *FBitmapBorder;
+    String FFileName;
+    bool FDown;
+
+public:
+    __fastcall TImageXE(Classes::TComponent* AOwner) : TGraphicControl(AOwner)
+    {
+        FBitmap = new Graphics::TBitmap;
+        FBitmap->Transparent = true;
+
+        FBitmapBorder = new Graphics::TBitmap;
+        FBitmapBorder->PixelFormat = pf32bit;
+        FBitmapBorder->AlphaFormat = afDefined;
+
+
+        this->OnMouseEnter = MouseEnter;
+        this->OnMouseLeave = MouseLeave;
+
+        FDown = false;
+    }
+
+	__fastcall ~TImageXE(void)
+    {
+        delete FBitmap;
+    }
+
+    void LoadFromFile(String filename)
+    {
+        FBitmap->LoadFromFile(filename);
+        FBitmapBorder->Width = FBitmap->Width + 8;
+        FBitmapBorder->Height = FBitmap->Height + 8;
+
+        canvas_clear(FBitmapBorder->Canvas, clBlack);
+        FBitmapBorder->Canvas->Draw(3, 3, FBitmap);
+
+        pixelbuffer<uint32_t> p;
+        p.assign(FBitmapBorder);
+
+        gauss_blur(p, 2.0);
+        pixelimage img;
+        graymap(img, p);
+        canvas_clear(FBitmapBorder->Canvas, clBlack);
+        alpha_channel_blt(p, 0, 0, img);
+
+        //for_each_pixel<uint32_t>(p, pixel_grayscale);
+    }
+
+    void __fastcall MouseEnter(TObject* Sender)
+    {
+        Tag = 1;
+        this->Repaint();
+    }
+
+    void __fastcall MouseLeave(TObject* Sender)
+    {
+        Tag = 0;
+        this->Repaint();
+    }
+
+
+protected:
+	virtual void __fastcall Paint(void)
+    {
+        //Canvas->Brush->Color = clBlue;
+        //Canvas->FillRect(ClientRect);
+        int x = 0;
+        int y = 0;
+        if(FDown){
+            x = 2;
+            y = 2;
+        }
+        if(!FDown && Tag)Canvas->Draw(x - 3, y - 3, FBitmapBorder);
+        Canvas->Draw(x, y, FBitmap);
+    }
+
+    DYNAMIC void __fastcall MouseDown(TMouseButton Button, Classes::TShiftState Shift, int X, int Y)
+    {
+        FDown = true;
+        this->Repaint();
+    }
+	/*DYNAMIC void __fastcall MouseMove(Classes::TShiftState Shift, int X, int Y)
+    {
+        DWORD color = FBitmap->Canvas->Pixels[X][Y];
+        if((color & 0x00FFFFFF) == 0){
+            TControl* c;
+            //((TControl*)Parent)->MouseMove(this->Parent, Shift, X, Y););
+            X += Left;
+            Y += Top;
+            SendMessage(Parent->Handle, WM_MOUSEMOVE, 0, MAKELONG(X, Y));
+        }
+        else{
+            print("image", color);
+            if(this->OnMouseMove)this->OnMouseMove(this, Shift, X, Y);
+        }
+    }
+    */
+	DYNAMIC void __fastcall MouseUp(TMouseButton Button, Classes::TShiftState Shift, int X, int Y)
+    {
+        FDown = false;
+        this->Repaint();
+    }
+
+    void __fastcall WndProc(TMessage& msg)
+    {
+        DWORD color;
+        switch(msg.Msg){
+        case CM_HITTEST:
+            color = FBitmap->Canvas->Pixels[msg.LParamLo][msg.LParamHi];
+            if((color & 0x00FFFFFF) == 0){
+                msg.Result = 0;
+                return ;
+            }
+            break;
+        }
+        TGraphicControl::WndProc(msg);
+    }
+};

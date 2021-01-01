@@ -1,0 +1,70 @@
+
+
+void __fastcall TfrmMain::ViewFolder(String Path)
+{
+	SHFILEINFO fi = {0};
+	HANDLE hfind;
+	WIN32_FIND_DATA wfd = {0};
+	UINT Flags = SHCONTF_FOLDERS | SHCONTF_NONFOLDERS | SHCONTF_INCLUDEHIDDEN;
+	//DWORD attrib = 0;
+
+	hfind = FindFirstFile((Path+"\\*").c_str(), &wfd);
+	if(hfind == INVALID_HANDLE_VALUE)
+	{
+		ShowMessage(TEXT("ÎÄ¼þ²éÕÒÊ§°Ü£¡"));
+		return ;
+	}
+
+	auto_ptr<TStringList> sl(new TStringList);
+	auto_ptr<TIniFile> ini(new TIniFile(CONFIG_FILE));
+	sl->Delimiter = ',';
+	sl->DelimitedText = ini->ReadString(CONFIG_MAIN, L"icolist", STRING_NULL);
+	int x = 0, y = 0;//ICON_HEIGHT/2;
+	bool bc = false;
+	do
+	{
+		_wcslwr(wfd.cFileName);
+		if(!wcscmp(wfd.cFileName, L".") || !wcscmp(wfd.cFileName, L".."))
+			continue;
+
+		bc = false;
+		for(int i=0; i<sl->Count; ++i)
+		{
+			if(wcsstr(wfd.cFileName, sl->Strings[i].c_str()))
+			{
+				bc = true;
+				break;
+			}
+		}
+		if(!bc)continue;
+
+		String fullpath = Path + "\\" + wfd.cFileName;
+
+		TWindow *Icon = new TWindow(this);
+		Icon->Parent = this;
+		Icon->Size = 48;
+		Icon->mode = 0;// ICON_RANDER_NULL;
+
+		SHGetFileInfo(fullpath.c_str(), 0, &fi, sizeof(SHFILEINFO),
+			SHGFI_DISPLAYNAME|SHGFI_SYSICONINDEX);
+
+		Icon->Caption = fi.szDisplayName;
+		Icon->id = fi.iIcon;
+		Icon->image.open_image(STRING_NULL, fi.iIcon, 48);
+		//Icon->image.open_image(fullpath);
+		//Icon->PopupMenu = frmMain->mnuIconMenu;
+
+		Icon->shell = fullpath;
+		Icon->show_title = true;
+		IconList.push_back(Icon);
+		//Application->ProcessMessages();
+		//Sleep(1);
+	}while(FindNextFile(hfind, &wfd));//end while
+}
+
+void __fastcall TfrmMain::ViewFolder(LPITEMIDLIST lpPIDL)
+{
+	TCHAR path[MAX_PATH] = {0};
+	SHGetPathFromIDList(lpPIDL, path);
+	ViewFolder(path);
+}

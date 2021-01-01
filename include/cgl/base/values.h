@@ -113,9 +113,11 @@ enum{
     CGL_LEFT        = 0x01,
     CGL_RIGHT       = 0x02,
     CGL_HORIZONTAL  = 0x03,    //horizontal水平居中
+    CGL_CENTER_H    = CGL_HORIZONTAL,
     CGL_TOP         = 0x04,
     CGL_BOTTOM      = 0x08,
     CGL_VERTICAL    = 0x0C,    //vertical垂直居中
+    CGL_CENTER_V    = CGL_VERTICAL,
     CGL_CENTER      = 0x0F,    //居中
     CGL_CLIENT      = 0xF0     //填充区域
 };

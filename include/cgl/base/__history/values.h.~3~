@@ -1,0 +1,503 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ values.hpp
+
+ 2018-01-14 11:47:36
+
+*/
+#ifndef VALUES_HPP_20180114114736
+#define VALUES_HPP_20180114114736
+
+namespace cgl{
+
+enum{
+    CGL_ZERO        =  0,
+    CGL_ONE         =  1,
+    CGL_MINUS_ONE   = -1,
+
+    CGL_NULL        = CGL_ZERO,
+
+    CGL_TRUE        = CGL_ONE,
+    CGL_FALSE       = CGL_ZERO,
+
+    CGL_DONE        = CGL_ZERO,
+    CGL_OK          = CGL_ZERO,
+    CGL_ERROR       = CGL_MINUS_ONE,
+
+    CGL_PUSH        = CGL_ONE,
+    CGL_POP         = CGL_ZERO,
+
+    CGL_BEGIN       = CGL_ZERO,
+    CGL_END         = UINT32_MAX
+
+};
+
+//class
+enum{
+    CGL_DRAWCALL        = 0x010000,
+    CGL_GRAPHIC         = 0x030000,
+    CGL_FACE            = 0x0B44, //GL_CULL_FACE
+    CGL_ALIGN           = 0x0CF5,
+    CGL_DIRECT          = 0x1204, //GL_SPOT_DIRECTION
+
+    CGL_WIDTH           = 0x1000, //GL_TEXTURE_WIDTH
+    CGL_HEIGHT          = 0x1001, //GL_TEXTURE_HEIGHT
+    CGL_FORMAT          = 0x1003, //GL_TEXTURE_INTERNAL_FORMAT
+    CGL_TYPE            = 0x92FA,
+    CGL_SIZE            = 0x92FB, //GL_ARRAY_SIZE
+    CGL_OFFSET          = 0x92FC,
+
+    CGL_BUFFER   = 0x82E0,
+    CGL_SHADER   = 0x82E1,
+    CGL_PROGRAM  = 0x82E2,
+    CGL_QUERY    = 0x82E3,
+
+    CGL_PRIMITIVE       = 0x8C7C, //GL_PRIMITIVE_ID_NV 图元
+};
+
+//CGL_DRAWCALL
+enum{
+    CGL_POSITION    = 0x1203,
+    CGL_CLEAR       = 0x1500,
+    CGL_TEXTURE     = 0x1702,
+    CGL_COLOR       = 0x1800,
+    CGL_PEN_WIDTH   = 0x0B21, //GL_LINE_WIDTH
+    CGL_SHADE_MODEL = 0x0B54,
+    CGL_MATRIX_MODE = 0x0BA0,
+    CGL_VIEWPORT    = 0x0BA2,
+    CGL_BLEND       = 0x0BE2,
+    CGL_LOGIC_OP    = 0x0BF2,
+    CGL_CLIPRECT    = 0x0C10, //剪裁区域 GL_SCISSOR_BOX
+    CGL_MATRIX      = 0x87C0,
+    CGL_ORIGIN      = 0x935C, //GL_CLIP_ORIGIN
+    CGL_FLUSH       = 0x83FA, //GL_PERFQUERY_FLUSH_INTEL
+    CGL_WAIT        = 0x83FB, //GL_PERFQUERY_WAIT_INTEL
+    CGL_PATH        = 0x020000,
+
+    CGL_FONT               = 0x9072, //GL_STANDARD_FONT_NAME_NV
+    CGL_SYSTEM_FONT        = 0x9073, //GL_SYSTEM_FONT_NAME_NV
+
+    //CGL_PRINT,
+
+    //CGL_SHADOW,
+    CGL_DRAWARRAYS,
+    CGL_UPDATE,
+    CGL_DRAW_CONTEXT = CGL_MINUS_ONE
+};
+
+//CGL_ORIGIN
+#define CGL_LOWER_LEFT 0x8CA1 //左下角起点
+#define CGL_UPPER_LEFT 0x8CA2 //左上角起点
+
+//default screen origin
+#ifndef CGL_COORDINATE
+    #define CGL_COORDINATE CGL_UPPER_LEFT
+#endif
+
+//CGL_GRAPHIC
+enum{
+    CGL_2D = 0x0600,
+    CGL_3D = 0x0601
+};
+
+//CGL_FACE
+enum{
+    CGL_FRONT           = 0x01,
+    CGL_BACK            = 0x02,
+    CGL_FRONT_AND_BACK  = 0x03
+};
+
+//CGL_ALIGN
+enum{
+    CGL_LEFT        = 0x01,
+    CGL_RIGHT       = 0x02,
+    CGL_HORIZONTAL  = 0x03,    //horizontal水平居中
+    CGL_HORIZONTAL  = CGL_HORIZONTAL,
+    CGL_TOP         = 0x04,
+    CGL_BOTTOM      = 0x08,
+    CGL_VERTICAL    = 0x0C,    //vertical垂直居中
+    CGL_CENTER      = 0x0F,    //居中
+    CGL_CLIENT      = 0xF0     //填充区域
+};
+
+//direct
+//CGL_DIRECT
+enum{
+    //CGL_LEFT  = 0x01,
+    //CGL_RIGHT = 0x02,
+    CGL_UP      = CGL_TOP,
+    CGL_DOWN    = CGL_BOTTOM
+};
+
+//position
+//CGL_POSITION
+enum{
+    CGL_X = 0x01,
+    CGL_Y = 0x02,
+    CGL_Z = 0x04,
+};
+
+//CGL_DIRECTION
+//5 4 6  NW N NE
+//1 x 2   W   E
+//9 8 A  SW S SE
+
+enum{
+    CGL_N   = CGL_UP,
+    CGL_NE  = CGL_RIGHT | CGL_UP,
+    CGL_E   = CGL_RIGHT,
+    CGL_SE  = CGL_RIGHT | CGL_DOWN,
+    CGL_S   = CGL_DOWN,
+    CGL_SW  = CGL_LEFT  | CGL_DOWN,
+    CGL_W   = CGL_LEFT,
+    CGL_NW  = CGL_LEFT  | CGL_UP,
+};
+
+//CGL_TYPE
+enum{
+    CGL_BYTE           = 0x1400,
+    CGL_UNSIGNED_BYTE  = 0x1401,
+    CGL_SHORT          = 0x1402,
+    CGL_UNSIGNED_SHORT = 0x1403,
+    CGL_INT            = 0x1404,
+    CGL_UNSIGNED_INT   = 0x1405,
+    CGL_FLOAT          = 0x1406,
+    CGL_DOUBLE         = 0x140A,
+    CGL_HALF_FLOAT     = 0x140B,
+
+    CGL_INT8   = CGL_BYTE,
+    CGL_UINT8  = CGL_UNSIGNED_BYTE,
+    CGL_INT16  = CGL_SHORT,
+    CGL_UINT16 = CGL_UNSIGNED_SHORT,
+    CGL_INT32  = CGL_INT,
+    CGL_UINT32 = CGL_UNSIGNED_INT,
+    CGL_INT64  = 0x140E,
+    CGL_UINT64 = 0x140F
+};
+
+//CGL_FORMAT
+enum{
+    CGL_INDEX           = 0x1900,
+    CGL_MONO            = 0x1901,
+    CGL_RED             = 0x1903,
+    CGL_GREEN           = 0x1904,
+    CGL_BLUE            = 0x1905,
+    CGL_ALPHA           = 0x1906,
+    CGL_RGB             = 0x1907,
+    CGL_RGBA            = 0x1908,
+    CGL_LUMINANCE       = 0x1909,
+    CGL_LUMINANCE_ALPHA = 0x190A,
+    CGL_ABGR            = 0x8000,    //GLES2 nonsuppert
+    CGL_BGR             = 0x80E0,    //GLES2 nonsuppert
+    CGL_BGRA            = 0x80E1,    //GLES2 nonsuppert
+    CGL_ALPHA4          = 0x803B,    //GLES2 nonsuppert
+    CGL_ALPHA8          = 0x803C,    //GLES2 nonsuppert
+    CGL_RGB16           = 0x8054,
+    CGL_RGBA16          = 0x805B,
+    CGL_RGB565          = 0x8D62     //GL_ARB_ES2_compatibility
+};
+
+//基本图元，兼容OpenGL ES
+//CGL_PRIMITIVE
+enum{
+    CGL_POINTS          = 0x0000,
+    CGL_LINES           = 0x0001,
+    CGL_LINE_LOOP       = 0x0002,
+    CGL_LINE_STRIP      = 0x0003,
+    CGL_TRIANGLES       = 0x0004,
+    CGL_TRIANGLE_STRIP  = 0x0005,
+    CGL_TRIANGLE_FAN    = 0x0006,
+    CGL_QUADS           = 0x0007     //CGL_TRIANGLE_FAN
+};
+
+//path
+enum{
+    CGL_MOVE_TO,            //坐标移动 move_to(x, y)
+    CGL_LINE_TO,            //绘制直线 line_to(x, y)
+    CGL_CURVE_TO,           //curve_to(points, size)
+    CGL_QUADRATIC_CURVE_TO, //二次曲线 quadratic_curve_to(p1, end)
+    CGL_CONIC_CURVE_TO,     //圆锥曲线; 二次曲线 conic_curve_to(p1, end)
+    CGL_CUBIC_CURVE_TO,     //三次曲线 cubic_curve_to(p1, p2, end)
+    CGL_ARC_TO,             //arc_to(...)
+    CGL_RECT,               //rect(x, y, width, height)
+    CGL_ROUNDED_RECT,       //round_rect(x, y, width, height, cx, cy)
+    CGL_ELLIPSE,            //ellipse(cx, cy, rx, ry)
+
+    CGL_CONIC_CURVE = CGL_CONIC_CURVE_TO,    //二次贝塞尔
+    CGL_CUBIC_CURVE = CGL_CUBIC_CURVE_TO,    //三次贝塞尔
+
+    CGL_CLOSE_PATH = 0xFF
+};
+
+//matrix mode
+//CGL_MATRIX_MODE
+enum{
+    CGL_MODELVIEW   = 0x1700,
+    CGL_PROJECTION  = 0x1701,
+    //CGL_TEXTURE   = 0x1702
+    GL_NORMALIZE    = 0x0BA1
+};
+
+//matrix
+//CGL_MATRIX
+enum{
+    CGL_IDENTITY    = 0x0087C0,
+    CGL_TRANSLATE   = 0x0187C0,
+    CGL_ROTATE      = 0x0287C0,
+    CGL_SCALE       = 0x0387C0,
+    CGL_PUSH_MATRIX = 0x0487C0,
+    CGL_POP_MATRIX  = 0x0587C0
+};
+
+//blend function
+//CGL_BLEND
+enum{
+    CGL_BLEND_DST           = 0x0BE0,
+    CGL_BLEND_SRC           = 0x0BE1,
+    //CGL_ZERO              = 0,
+    //CGL_ONE               = 1,
+    CGL_SRC_COLOR           = 0x0300,
+    CGL_ONE_MINUS_SRC_COLOR = 0x0301,
+    CGL_SRC_ALPHA           = 0x0302,
+    CGL_ONE_MINUS_SRC_ALPHA = 0x0303,
+    CGL_DST_ALPHA           = 0x0304,
+    CGL_ONE_MINUS_DST_ALPHA = 0x0305,
+    CGL_DST_COLOR           = 0x0306,
+    CGL_ONE_MINUS_DST_COLOR = 0x0307,
+    CGL_SRC_ALPHA_SATURATE  = 0x0308
+};
+
+//filter
+//CGL_TEXTURE_FILTER
+enum{
+    CGL_NEAREST = 0x2600,
+    CGL_LINEAR  = 0x2601
+};
+
+enum{
+    CGL_FAST     = CGL_NEAREST,
+    CGL_BILINEAR = CGL_LINEAR
+};
+
+//texture
+//CGL_TEXTURE
+enum{
+    CGL_TEXTURE_1D = 0x0DE0,
+    CGL_TEXTURE_2D = 0x0DE1,
+    CGL_TEXTURE_3D = 0x0DE2
+};
+
+//fill mode gles nonsuppert
+enum{
+    CGL_POINT = 0x1B00,
+    CGL_LINE  = 0x1B01,
+    CGL_FILL  = 0x1B02
+};
+
+//shade mode
+//CGL_SHADE_MODEL
+enum{
+    CGL_FLAT   = 0x1D00,
+    CGL_SMOOTH = 0x1D01
+};
+
+//logic op
+//CGL_LOGIC_OP
+enum{
+    //CGL_CLEAR       = 0x1500,
+    CGL_AND           = 0x1501,
+    CGL_AND_REVERSE   = 0x1502,
+    CGL_COPY          = 0x1503,
+    CGL_AND_INVERTED  = 0x1504,
+    CGL_NOOP          = 0x1505,
+    CGL_XOR           = 0x1506,
+    CGL_OR            = 0x1507,
+    CGL_NOR           = 0x1508,
+    CGL_EQUIV         = 0x1509,
+    CGL_INVERT        = 0x150A,
+    CGL_NOT           = 0x150A, //user
+    CGL_OR_REVERSE    = 0x150B,
+    CGL_COPY_INVERTED = 0x150C,
+    CGL_OR_INVERTED   = 0x150D,
+    CGL_NAND          = 0x150E,
+    CGL_SET           = 0x150F
+};
+
+//renderer
+enum{
+    CGL_SOFT = 1,
+    CGL_GDI,
+    CGL_DIRECT3D,
+    CGL_OPENGL,
+    CGL_VULKAN
+};
+
+//effect level
+enum{
+    CGL_LOW,
+    CGL_MEDIUM,
+    CGL_HIGH,
+
+    CGL_SPEED   = CGL_LOW,
+    CGL_QUALITY = CGL_HIGH
+};
+
+//math
+enum{
+    CGL_MUL  = 0x0103,
+    CGL_ADD  = 0x0104,
+    CGL_DIV  = 0x0105,
+    CGL_SUB  = 0x0106
+};
+
+//compare
+enum{
+    GL_NEVER    = 0x0200,
+    GL_LESS     = 0x0201,
+    GL_EQUAL    = 0x0202,
+    GL_LEQUAL   = 0x0203,
+    GL_GREATER  = 0x0204,
+    GL_NOTEQUAL = 0x0205,
+    GL_GEQUAL   = 0x0206,
+    GL_ALWAYS   = 0x0207
+};
+
+//color
+const byte_t CGL_ALPHA_TRANSPARENT = CGL_ZERO;
+const byte_t CGL_ALPHA_OPAQUE = 255;
+
+//CGL_HASH
+enum{
+    CGL_HASH,
+    CGL_HASH32,
+    CGL_HASH64,
+    CGL_HASH128,
+    CGL_HASH256
+};
+
+//OBJECT CLASS
+enum{
+    //CGL_NULL,
+    CGL_ALLOCATE    = 0x0100,
+    CGL_DEALLOCATE,
+    CGL_BIND        = 0x0200,
+    CGL_MAP         = 0x0300,
+    CGL_LINK        = 0x0400
+};
+
+enum{
+    CGL_APP,
+    CGL_WINDOW   = 0x0100,
+    CGL_INPUT    = 0x0200,
+    CGL_MOUSE    = 0x0200,
+    CGL_KEYBOARD = 0x0300
+};
+
+//app events
+enum{
+    CGL_START       = 0x0000,   //启动
+    CGL_STOP,                   //关闭
+    CGL_RESUME,                 //返回
+    CGL_DESTROY,                //销毁
+    CGL_SAVE,                   //保存
+    CGL_CONFIG,                 //配置改变
+    CGL_LOW_MEMORY,             //内存不足
+    CGL_POWER,                  //电源事件
+
+    CGL_CREATE      = 0x0100,
+    CGL_CLOSE,
+    CGL_SHOW,
+    CGL_HIDE,
+    CGL_ACTIVATE,
+    CGL_DEACTIVATE,
+    CGL_ENABLE,
+    CGL_DISABLE,
+    CGL_MOVE,
+    CGL_RESIZE,
+    CGL_PAINT,
+    CGL_CURSOR,
+    CGL_RESHAPE,
+
+    CGL_TIMER,
+    CGL_COMMAND,
+    CGL_UNDO,
+    CGL_REPEAT,
+    CGL_CUT,
+    //CGL_COPY,
+    CGL_PASTE,
+    CGL_SELECTALL,
+
+    CGL_MOUSEDOWN   = 0x0200,
+    CGL_MOUSEUP,
+    CGL_MOUSEMOVE,
+    CGL_MOUSEWHEEL,
+    CGL_CLICK,
+    CGL_DOUBLE_CLICK,
+    CGL_HOLD,           //long click
+    CGL_ENTER,
+    CGL_LEAVE,
+    CGL_MOUSEHIT,
+
+    CGL_KEYDOWN     = 0x0300,
+    CGL_KEYUP,
+    CGL_KEYPRESS
+};
+
+//mouse button
+enum{
+    //CGL_LEFT,
+    //CGL_RIGHT,
+    CGL_MIDDLE = 0x0010
+};
+
+//keyboard
+enum{
+    CGL_F1,
+    CGL_SPACE   = 32,
+};
+
+const uint64_t CGL_KILO    = 1000ull;
+const uint64_t CGL_MILLION = CGL_KILO * CGL_KILO;
+const uint64_t CGL_GIGA    = CGL_MILLION * CGL_KILO;
+const uint64_t CGL_TERA    = CGL_GIGA * CGL_KILO;
+
+//GL_FILE_NAME 0x9074
+//GL_STANDARD_FONT_NAME_NV 0x9072
+
+//error number
+
+CGL_PUBLIC_DECLARE const char* CGL_TEXT_DEFAULT = "@cgl.text.default";
+
+}//end namespace cgl
+
+#endif //VALUES_HPP_20180114114736
+
+/*
+  CGL_BASE,
+    //CGL_TITLE,
+
+    CGL_FILE,
+    CGL_MEMORY,
+    CGL_RESOURCE,
+
+    CGL_DISK,
+    CGL_DRIVE,
+    CGL_DIRECTORY,
+    //CGL_LINK,
+    CGL_BLOCK,
+    CGL_ZIP,
+    CGL_TEMP = -1
+};
+
+    CGL_OBJECT          = 0x150000,
+    CGL_CLASS           = 0x160000,
+    CGL_IO              = 0x170000,
+    CGL_FILE_NAME       = 0x9074, //GL_FILE_NAME_NV
+
+    CGL_UTF8  = 0x909A, //GL_UTF8_NV
+    CGL_UTF16 = 0x909B, //GL_UTF16_NV
+    //GL_FONT_HEIGHT 0x00800000//GL_FONT_HEIGHT_BIT_NV
+    //GL_BOLD_BIT_NV 0x01           //GL_BOLD_BIT_NV
+    //GL_ITALIC_BIT_NV 0x02         //GL_ITALIC_BIT_NV
+*/

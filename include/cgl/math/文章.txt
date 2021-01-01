@@ -1,0 +1,99 @@
+
+
+// Determine whether a ray intersect with a triangle
+// Parameters
+// orig: origin of the ray
+// dir: direction of the ray
+// v0, v1, v2: vertices of triangle
+// t(out): weight of the intersection for the ray
+// u(out), v(out): barycentric coordinate of intersection
+
+bool IntersectTriangle(const Vector3& orig, const Vector3& dir,
+    Vector3& v0, Vector3& v1, Vector3& v2,
+    float* t, float* u, float* v)
+{
+    // E1
+    Vector3 E1 = v1 - v0;
+
+    // E2
+    Vector3 E2 = v2 - v0;
+
+    // P
+    Vector3 P = dir.Cross(E2);
+
+    // determinant
+    float det = E1.Dot(P);
+
+    // keep det > 0, modify T accordingly
+    Vector3 T;
+    if( det >0 )
+    {
+        T = orig - v0;
+    }
+    else
+    {
+        T = v0 - orig;
+        det = -det;
+    }
+
+    // If determinant is near zero, ray lies in plane of triangle
+    if( det < 0.0001f )
+        return false;
+
+    // Calculate u and make sure u <= 1
+    *u = T.Dot(P);
+    if( *u < 0.0f || *u > det )
+        return false;
+
+    // Q
+    Vector3 Q = T.Cross(E1);
+
+    // Calculate v and make sure u + v <= 1
+    *v = dir.Dot(Q);
+    if( *v < 0.0f || *u + *v > det )
+        return false;
+
+    // Calculate t, scale parameters, ray intersects triangle
+    *t = E2.Dot(Q);
+
+    float fInvDet = 1.0f / det;
+    *t *= fInvDet;
+    *u *= fInvDet;
+    *v *= fInvDet;
+
+    return true;
+}
+
+
+
+
+
+
+#define CV_PI M_PI
+static const float atan2_p1 = 0.9997878412794807f*(float)(180/CV_PI);
+static const float atan2_p3 = -0.3258083974640975f*(float)(180/CV_PI);
+static const float atan2_p5 = 0.1555786518463281f*(float)(180/CV_PI);
+static const float atan2_p7 = -0.04432655554792128f*(float)(180/CV_PI);
+
+float fastAtan2( float y, float x )
+{
+    float ax = std::abs(x), ay = std::abs(y);//首先不分象限，求得一个锐角角度
+    float a, c, c2;
+	if( ax >= ay )
+    {
+        c = ay/(ax + (float)DBL_EPSILON);
+        c2 = c*c;
+        a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+    }
+    else
+    {
+        c = ax/(ay + (float)DBL_EPSILON);
+        c2 = c*c;
+        a = 90.f - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+    }
+    if( x < 0 )//锐角求出后，根据x和y的正负性确定向量的方向，即角度。
+        a = 180.f - a;
+    if( y < 0 )
+        a = 360.f - a;
+    return a;
+}

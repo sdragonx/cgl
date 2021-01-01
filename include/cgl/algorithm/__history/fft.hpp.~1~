@@ -1,0 +1,24 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ fft.hpp
+
+ 2020-11-09 01:05:42
+
+ 快速傅里叶变换
+ Fast Fourier Transformation
+
+*/
+#ifndef FFT_HPP_20201109010542
+#define FFT_HPP_20201109010542
+
+#include <cgl/public.h>
+
+namespace cgl{
+
+
+
+
+}//end namespace cgl
+
+#endif //FFT_HPP_20201109010542

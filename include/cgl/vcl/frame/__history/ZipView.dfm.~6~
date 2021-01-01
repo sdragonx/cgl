@@ -1,0 +1,7 @@
+object ZipView: TZipView
+  Left = 0
+  Top = 0
+  Width = 476
+  Height = 590
+  TabOrder = 0
+end

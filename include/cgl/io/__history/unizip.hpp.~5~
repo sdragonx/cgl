@@ -1,0 +1,76 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ unizip.hpp
+
+ 2020-05-26 17:04:04
+
+*/
+#ifndef UNIZIP_HPP_20200526170404
+#define UNIZIP_HPP_20200526170404
+
+#include "zip/typedef.hpp"
+#include "zip/pkcrypt.hpp"
+
+namespace cgl{
+namespace io{
+
+int unzip(std::vector<byte_t>& data, io::unifile* f, fsize_t offset, const char* password)
+{
+    ziplist z;
+    ziplist_read(z, f, offset);
+
+    if(z.type != io::zip_list::TYPE_FILE){
+        return ZIP_ERROR_DATA;
+    }
+
+    //移动指针到数据位置
+    f->seek(z.offset, SEEK_SET);
+    f->seek(4 + sizeof(ZIP_FILE32) + z.file32.name_length + z.file32.extra_size, SEEK_CUR);
+
+    //加密数据
+    if(z.file32.flag & ZIP_ENCRYPTED){
+        if(z.file32.compress_mode == ZIP_AES256){//AES
+            CGL_LOG("AES256加密文件");
+        }
+        else if(z.file32.compress_mode == ZIP_STORED || z.file32.compress_mode == ZIP_DEFLATED){//crypto
+            CGL_LOG("pkcrypto加密文件");
+            return pkunzip(data, f, z, password);
+        }
+        else{
+            CGL_LOG("unzip: unknown crypto method.");
+            return ZIP_ERROR_DECRYPT;
+        }
+    }
+    else{
+        if(z.file32.compress_mode == 0){//未压缩数据
+            CGL_LOG("数据类型：未压缩加密数据");
+            data.resize(z.file32.compressed_size);
+            f->read(&data[0], data.size());
+            return 0;
+        }
+        else if(z.file32.compress_mode == 8){//zlib
+            CGL_LOG("数据类型：压缩数据");
+            std::vector<byte_t> zbuffer;
+            zbuffer.resize(z.file32.compressed_size + 2);
+            zbuffer[0] = 0x78;
+            zbuffer[1] = 0x01;
+            f->read(&zbuffer[2], zbuffer.size());
+            uncompress(data, z.file32.source_size, &zbuffer[0], zbuffer.size());
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //UNIZIP_HPP_20200526170404

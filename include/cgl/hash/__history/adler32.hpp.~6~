@@ -1,0 +1,54 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ adler32.hpp
+
+ 2020-05-19 15:52:34
+
+*/
+#ifndef ADLER32_HPP_20200519155234
+#define ADLER32_HPP_20200519155234
+
+#include <cgl/public.h>
+
+namespace cgl{
+namespace hash{
+
+//adler default = 1
+uint32_t adler32(uint32_t adler, const void* data, size_t size)
+{
+    if (!data){
+        return MZ_ADLER32_INIT;
+    }
+
+    const byte_t* ptr = static_cast<const byte_t*>(data);
+    uint32_t s1 = (uint32_t)(adler & 0xffff);
+    uint32_t s2 = (uint32_t)(adler >> 16);
+    size_t block_len = size % 5552;
+    size_t i;
+
+    while (size){
+        for (i = 0; i + 7 < block_len; i += 8, ptr += 8){
+            s1 += ptr[0], s2 += s1;
+            s1 += ptr[1], s2 += s1;
+            s1 += ptr[2], s2 += s1;
+            s1 += ptr[3], s2 += s1;
+            s1 += ptr[4], s2 += s1;
+            s1 += ptr[5], s2 += s1;
+            s1 += ptr[6], s2 += s1;
+            s1 += ptr[7], s2 += s1;
+        }
+        for (; i < block_len; ++i){
+            s1 += *ptr++, s2 += s1;
+        }
+        s1 %= 65521U, s2 %= 65521U;
+        size -= block_len;
+        block_len = 5552;
+    }
+    return (s2 << 16) + s1;
+}
+
+}//end namespace hash
+}//end namespace cgl
+
+#endif //ADLER32_HPP_20200519155234

@@ -1,0 +1,54 @@
+
+#if 0
+void print(String s){Form1->Memo1->Lines->Add(s); }
+void print(String s1, String s2){Form1->Memo1->Lines->Add(s1 + " = " + s2); }
+void print(String name, String property, String value, bool is_str = false)
+{
+	String s;
+	s += name;
+	s += "->";
+	s += property;
+	s += " = ";
+	if(is_str)s += '\"';
+	s += value;
+	if(is_str)s += '\"';
+	s += ';';
+
+	Form1->Memo1->Lines->Add(s);
+}
+
+String RectToStr(TRect rc)
+{
+	String s;
+	s.printf(L"TRect(%i, %i, %i, %i)", rc);
+	return s;
+}
+
+int print_form(TForm* Form)
+{
+	String name = Form->Name;
+	//print(name, "name", name);
+
+	String lsAlign[] = {"alNone", "alTop", "alBottom", "alLeft", "alRight", "alClient", "alCustom"};
+	String lsBorderStyle[] = {"bsNone", "bsSingle", "bsSizeable", "bsDialog", "bsToolWindow", "bsSizeToolWin"};
+	String lsPosition[] = {"poDesigned", "poDefault", "poDefaultPosOnly", "poDefaultSizeOnly", "poScreenCenter", "poDesktopCenter", "poMainFormCenter", "poOwnerFormCenter" };
+
+	print(name, "Caption", Form->Caption, true);
+	print(name, "Align", lsAlign[Form->Align]);
+	print(name, "BorderStyle", lsBorderStyle[Form->BorderStyle]);
+	print(name, "BoundsRect", RectToStr(Form->BoundsRect));
+
+	print(name, "Font->Height", Form->Font->Height);
+	print(name, "Font->Name", Form->Font->Name, true);
+
+	print(name, "Position", lsPosition[Form->Position]);
+
+	if(Form->OnCreate)print(name, "OnCreate", "FormCreate");
+	if(Form->OnClose)print(name, "OnClose", "FormClose");
+	if(Form->OnShow)print(name, "OnShow", "FormShow");
+
+
+
+
+}
+#endif

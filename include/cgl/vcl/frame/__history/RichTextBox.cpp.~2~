@@ -1,0 +1,153 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+
+#include "RichTextBox.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+TfrmRichText *frmRichText;
+//---------------------------------------------------------------------------
+__fastcall TfrmRichText::TfrmRichText(TComponent* Owner)
+    : TFrame(Owner)
+{
+    cbbFonts->Items = Screen->Fonts;
+    RichEdit->Align = alClient;
+//    RichEdit->DefAttributes->Pitch = 0;// RichEdit->Font->Pitch;
+//    RichEdit->DefAttributes->Charset = GB2312_CHARSET;
+//    RichEdit->DefAttributes->Name = "Î¢ÈíÑÅºÚ";// RichEdit->Font->Name;
+    RichEdit->HideSelection = false;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::cbbFontsChange(TObject *Sender)
+{//
+    RichEdit->SelAttributes->Name = cbbFonts->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::cbbSizeChange(TObject *Sender)
+{//
+    RichEdit->SelAttributes->Size = cbbSize->Text.ToInt();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnSmallClick(TObject *Sender)
+{//
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnLargeClick(TObject *Sender)
+{//
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::ColorBoxChange(TObject *Sender)
+{//
+    RichEdit->SelAttributes->Color = ColorBox->Selected;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnFontClick(TObject *Sender)
+{//
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnBoldClick(TObject *Sender)
+{//
+    if(btnBold->Down){
+        RichEdit->SelAttributes->Style = RichEdit->SelAttributes->Style<<fsBold;
+    }
+    else{
+        RichEdit->SelAttributes->Style = RichEdit->SelAttributes->Style>>fsBold;
+    }
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnItalicClick(TObject *Sender)
+{//
+    if(btnItalic->Down){
+        RichEdit->SelAttributes->Style = RichEdit->SelAttributes->Style<<fsItalic;
+    }
+    else{
+        RichEdit->SelAttributes->Style = RichEdit->SelAttributes->Style>>fsItalic;
+    }
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnUnderlineClick(TObject *Sender)
+{//
+    if(btnUnderline->Down){
+        RichEdit->SelAttributes->Style = RichEdit->SelAttributes->Style<<fsUnderline;
+    }
+    else{
+        RichEdit->SelAttributes->Style = RichEdit->SelAttributes->Style>>fsUnderline;
+    }
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnLeftClick(TObject *Sender)
+{//
+    RichEdit->Paragraph->Alignment = taLeftJustify;
+    //RichEdit->Paragraph->FirstIndent = 10;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnCenterClick(TObject *Sender)
+{//
+    RichEdit->Paragraph->Alignment = taCenter;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnRightClick(TObject *Sender)
+{//
+    RichEdit->Paragraph->Alignment = taRightJustify;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::btnImageClick(TObject *Sender)
+{//
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::RichEditChange(TObject *Sender)
+{//
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::RichEditProtectChange(TObject *Sender, int StartPos, int EndPos, bool &AllowChange)
+{//
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmRichText::RichEditSelectionChange(TObject *Sender)
+{//
+    cbbFonts->Text = RichEdit->SelAttributes->Name;
+    cbbSize->Text = RichEdit->SelAttributes->Size;
+    ColorBox->Selected = RichEdit->SelAttributes->Color;
+    btnBold->Down = RichEdit->SelAttributes->Style.Contains(fsBold);
+    btnBold->Down = RichEdit->SelAttributes->Style.Contains(fsBold);
+    btnItalic->Down = RichEdit->SelAttributes->Style.Contains(fsItalic);
+    btnUnderline->Down = RichEdit->SelAttributes->Style.Contains(fsUnderline);
+    switch(RichEdit->Paragraph->Alignment)
+    {
+    case taLeftJustify:
+        btnLeft->Down = true;
+        break;
+    case taRightJustify:
+        btnRight->Down = true;
+        break;
+    case taCenter:
+        btnCenter->Down = true;
+        break;
+    }
+}
+//---------------------------------------------------------------------------
+

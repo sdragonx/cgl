@@ -1,0 +1,255 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ zlibfile.hpp
+
+ 2018-09-20 17:07:14
+
+*/
+#ifndef ZLIBFILE_HPP_20180920170714
+#define ZLIBFILE_HPP_20180920170714
+
+#pragma once
+
+#include <cgl/io/binfile.hpp>
+#include <cgl/zlib.hpp>
+
+namespace cgl{
+namespace io{
+
+struct Z_DATAINFO
+{
+    uint16_t version;
+    int16_t  level;
+    uint32_t compressed;
+    uint32_t size;
+    uint32_t crc32;
+};
+
+class zlibfile : public unifile
+{
+public:
+    zstream m_stream;
+    byte_t m_buf[CGL_FILE_BUFFER_SIZE];
+    size_t m_seekpos;
+    Z_DATAINFO m_info;
+
+    const static int STATE_NONE    = 0;
+    const static int STATE_DEFLATE = 1;
+    const static int STATE_INFLATE = 2;
+    int m_state;
+public:
+    zlibfile() : unifile()
+    {
+        m_state = STATE_NONE;
+    }
+
+    int open(const char* fn, int mode, int share)
+    {
+        return this->open(fn, null, mode, share);
+    }
+
+    int open(const wchar_t* fn, int mode, int share)
+    {
+        return this->open(null, fn, mode, share);
+    }
+
+    void close()
+    {
+        if(m_file){
+            delete m_file;
+            m_file = null;
+            m_state = STATE_NONE;
+        }
+    }
+
+    bool is_open() { return m_file && m_file->is_open(); }
+
+    fsize_t seek(fsize_t pos, int whence)
+    {
+        return 0;
+    }
+
+    fsize_t tell()
+    {
+        return 0;
+    }
+
+    fsize_t size()
+    {
+        return 0;
+    }
+
+    fsize_t resize(fsize_t size)
+    {
+        return CGL_ERROR;
+    }
+
+    int begin_inflate()
+    {
+        if(m_state != STATE_NONE){
+            return CGL_ERROR;
+        }
+
+        int result = 0;
+
+        m_stream.inflate_init();
+        if (result == ::Z_OK)
+        {
+            m_seekpos = 0;
+            m_state = STATE_INFLATE;
+            m_file->seek(0, SEEK_SET);
+        }
+        return result;
+    }
+
+    int end_inflate()
+    {
+        if(m_state == STATE_INFLATE){
+            m_state = STATE_NONE;
+            return m_stream.inflate_end();
+        }
+        return CGL_ERROR;
+    }
+
+    fsize_t read(void* data, fsize_t size)
+    {
+        int result = 0;
+        size_t in_read;
+        m_stream.out_data(data, size);
+        int flush;
+
+        do {
+            if(!m_stream.avail_in){//读取压缩数据
+                m_file->seek(m_seekpos, seek_begin);
+                in_read = m_file->read(m_buf, CGL_FILE_BUFFER_SIZE);
+                if(in_read == 0){//eof
+                    return size - m_stream.avail_out;
+                }
+                m_stream.avail_in = in_read;
+                if(!m_seekpos){
+                    m_stream.avail_in += 2;
+                }
+                m_stream.next_in = m_buf;
+                m_seekpos += in_read;
+            }
+            //解压
+            flush = m_file->eof() ? Z_FINISH : Z_NO_FLUSH;
+            result = m_stream.inflate(flush);
+            if(result != Z_OK){//Z_STREAM_END
+                break;
+            }
+        }while(flush != Z_FINISH);
+
+        if(result != Z_OK){
+            //print(result);
+        }
+        return size - m_stream.avail_out;
+    }
+
+    int begin_deflate(int level)//0~9
+    {
+        if(m_state != STATE_NONE){
+            return CGL_ERROR;
+        }
+
+        int result = m_stream.deflate_init(level);
+        if (result == Z_OK)
+        {
+            m_state = STATE_DEFLATE;
+            m_file->seek(0, SEEK_SET);
+            memset(&m_info, 0, sizeof(Z_DATAINFO));
+            memset(m_buf, 0, sizeof(m_buf));
+            m_info.version = Z_VERNUM;
+            m_info.level   = level;
+            m_info.crc32   = hash::crc32(0, NULL, 0);
+        }
+        return result;
+    }
+
+    int end_deflate()
+    {
+        if(m_state == STATE_DEFLATE){
+            this->flush();
+            m_state = STATE_NONE;
+            return m_stream.deflate_end();
+        }
+        return CGL_ERROR;
+    }
+
+    fsize_t write(const void* data, fsize_t size)
+    {
+        m_stream.avail_in = size;
+        m_stream.next_in  = (byte_t*)data;
+        int result;
+        do{
+            result = deflate_flush(false);
+            if(result != Z_OK){
+                break;
+            }
+        }while(m_stream.avail_out == 0);  //avail_out == 0 表示可能还有数据没有得到压缩
+        CGL_ASSERT(m_stream.avail_in == 0);   // all input will be used
+        return result;
+    }
+
+private:
+    int open(const char* afn, const wchar_t* wfn, int mode, int share)
+    {
+        this->close();
+
+        if(mode & io_memory){
+            m_file = new memfile;
+        }
+        else{
+            m_file = new binfile;
+        }
+
+        if(afn){
+            m_file->open(afn, mode, share);
+        }
+        else if(wfn){
+            m_file->open(wfn, mode, share);
+        }
+
+        if(!m_file->is_open()){
+            delete m_file;
+            m_file = null;
+            return CGL_ERROR;
+        }
+        return 0;
+    }
+
+    void flush()
+    {
+        if(m_state == STATE_INFLATE){
+        }
+        else if(m_state == STATE_DEFLATE){
+            m_stream.avail_in = 0;
+            m_stream.next_in  = null;
+            deflate_flush(true);
+            m_info.compressed = m_stream.total_out;
+            m_info.size = m_stream.total_in;
+        }
+    }
+
+    int deflate_flush(bool flush)
+    {
+        m_stream.avail_out = CGL_FILE_BUFFER_SIZE;
+        m_stream.next_out  = m_buf;
+        int result = m_stream.deflate(flush ? Z_FINISH : Z_NO_FLUSH);
+        if(result == Z_STREAM_ERROR){
+            //error check
+        }
+        size_t compressed = CGL_FILE_BUFFER_SIZE - m_stream.avail_out;
+        size_t written = m_file->write(m_buf, compressed);
+        if(written != compressed){//check io error
+            return Z_ERRNO;
+        }
+        return Z_OK;
+    }
+};
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //ZLIBFILE_HPP_20180920170714

@@ -145,3 +145,102 @@ private:
 }//end namespace cgl
 
 #endif //MODEL_OBJ_HPP_20200105132709
+
+/*
+
+
+class objmodel
+{
+public:
+    std::vector<vec3> vertices;
+    std::vector<vec3> normals;
+    std::vector<vec2> vts;
+
+    std::vector<std::vector<ivec3> > faces;
+
+public:
+    objmodel()
+    {
+
+    }
+    ~objmodel()
+    {
+
+    }
+
+    void open(const char* filename)
+    {
+        this->close();
+
+        std::ifstream in;
+        in.open(filename, std::ifstream::in);
+        if (in.fail()) {
+            qDebug("open obj model error: %s", filename);
+            return;
+        }
+
+        std::string line;
+        while (!in.eof()) {
+            std::getline(in, line);
+            std::istringstream iss(line.c_str());
+            char trash;
+            if (!line.compare(0, 2, "v ")) {
+                iss >> trash;
+                vec3 v;
+                for (int i = 0; i<3; i++) iss >> v[i];
+                vertices.push_back(v);
+            }
+            else if (!line.compare(0, 3, "vn ")) {
+                iss >> trash >> trash;
+                vec3 n;
+                for (int i = 0; i<3; i++) iss >> n[i];
+                normals.push_back(n);
+            }
+            else if (!line.compare(0, 3, "vt ")) {
+                iss >> trash >> trash;
+                vec2 uv;
+                for (int i = 0; i<2; i++) iss >> uv[i];
+                vts.push_back(uv);
+            }
+            else if (!line.compare(0, 2, "f ")) {
+                std::vector<ivec3> f;
+                ivec3 tmp;
+                iss >> trash;
+                while (iss >> tmp.x >> trash >> tmp.y >> trash >> tmp.z) {
+                    tmp -= 1;
+                    f.push_back(tmp);
+                }
+                faces.push_back(f);
+            }
+        }
+
+
+    }
+
+    void close()
+    {
+        vertices.clear();
+        normals.clear();
+        vts.clear();
+        faces.clear();
+    }
+
+    //转换到顶点数组，scale是缩放比例
+    void tranform(std::vector<vertex>& vs, double scale = 1.0)
+    {
+        vertex v;
+        v.color = vec4(1.0);
+
+        vs.clear();
+        for (size_t i = 0; i<faces.size(); ++i) {
+            std::vector<ivec3> &f = faces[i];
+            for (size_t j = 0; j < f.size(); ++j) {
+                v.position = vec4(vertices[f[j].x] * scale, 1.0);
+                //v.texcoord = vts[f[j].y];
+                v.normal = normals[f[j].z];
+                vs.push_back(v);
+            }
+        }
+    }
+};
+*/

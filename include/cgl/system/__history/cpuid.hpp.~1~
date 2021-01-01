@@ -1,0 +1,22 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ cpuid.hpp
+
+ 2020-04-29 11:21:29
+
+*/
+#ifndef CPUID_HPP_20200429112129
+#define CPUID_HPP_20200429112129
+
+#include <cgl/public.h>
+
+namespace cgl{
+namespace system{
+
+
+
+}//end namespace system
+}//end namespace cgl
+
+#endif //CPUID_HPP_20200429112129

@@ -16,6 +16,7 @@
 #include <cgl/base/fixedpoint.h>
 #include <cgl/base/float.h>
 #include <cgl/base/int.h>
+#include <cgl/base/is_equal.h>
 #include <cgl/base/is_zero.h>
 #include <cgl/base/null.h>
 #include <cgl/base/xtype.h>
@@ -294,7 +295,7 @@ private:
 };
 
 template<typename T>
-T single<T>::value = T();
+CGL_PUBLIC_DECLARE T single<T>::value = T();
 
 
 }//end namespace cgl

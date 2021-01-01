@@ -1,0 +1,206 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ memflip.hpp
+
+ 2019-12-16 07:49:25
+
+*/
+#ifndef MEMSWAP_HPP_20191216074925
+#define MEMSWAP_HPP_20191216074925
+
+#include <cgl/public.h>
+#include <cgl/std/array.hpp>
+
+#include <stdlib.h>
+
+namespace cgl{
+
+//
+// byte_swap
+//
+
+inline void fast_byte_swap(byte_t& a, byte_t& b)
+{
+    a ^= b;
+    b ^= a;
+    a ^= b;
+}
+
+inline void byte_swap8(void* data)
+{
+}
+
+inline void byte_swap16(void* data)
+{
+    byte_t* p = static_cast<byte_t*>(data);
+    fast_byte_swap(p[0], p[1]);
+}
+
+inline void byte_swap32(void* data)
+{
+    byte_t* p = static_cast<byte_t*>(data);
+    fast_byte_swap(p[0], p[3]);
+    fast_byte_swap(p[1], p[2]);
+}
+
+inline void byte_swap64(void* data)
+{
+    byte_t* p = static_cast<byte_t*>(data);
+    fast_byte_swap(p[0], p[7]);
+    fast_byte_swap(p[1], p[6]);
+    fast_byte_swap(p[2], p[5]);
+    fast_byte_swap(p[3], p[4]);
+}
+
+inline void byte_swap128(void* data)
+{
+    byte_t* p = static_cast<byte_t*>(data);
+    fast_byte_swap(p[0], p[15]);
+    fast_byte_swap(p[1], p[14]);
+    fast_byte_swap(p[2], p[13]);
+    fast_byte_swap(p[3], p[12]);
+    fast_byte_swap(p[4], p[11]);
+    fast_byte_swap(p[5], p[10]);
+    fast_byte_swap(p[6], p[ 9]);
+    fast_byte_swap(p[7], p[ 8]);
+}
+
+void byte_swap(void* first, void* last)
+{
+    byte_t* left  = static_cast<byte_t*>(first);
+    byte_t* right = static_cast<byte_t*>(last);
+    while(left < right){
+        fast_byte_swap(*left++, *right--);
+    }
+}
+
+/*
+    switch(sizeof(T)){
+    case 1:
+        byte_swap8(data);
+        break;
+    case 2:
+        byte_swap16(data);
+        break;
+    case 4:
+        byte_swap32(data);
+        break;
+    case 8:
+        byte_swap64(data);
+        break;
+    case 16:
+        byte_swap128(data);
+        break;
+    default:
+        byte_swap(data, sizeof(T));
+        break;
+    }
+*/
+
+inline void byte_swap(void* data, size_t size)
+{
+    byte_swap(data, static_cast<byte_t*>(data) + --size);
+}
+
+//
+// bswap<T>
+//
+
+template<size_t size>
+inline void bswapx(void* data);
+
+template<>inline void bswapx<8>  (void *data) { byte_swap8  (data); }
+template<>inline void bswapx<16> (void *data) { byte_swap16 (data); }
+template<>inline void bswapx<32> (void *data) { byte_swap32 (data); }
+template<>inline void bswapx<64> (void *data) { byte_swap64 (data); }
+template<>inline void bswapx<128>(void *data) { byte_swap128(data); }
+
+template<typename T>
+inline void bswap(T *data)
+{
+    return bswapx<sizeof(T) * 8>(data);
+}
+
+//
+// memswap
+//
+
+template<typename T>
+void memswapT(void* first, void* last)
+{
+    CGL_ASSERT(first < last);
+    T* left  = static_cast<T*>(first);
+    T* right = static_cast<T*>(last) - 1;
+    T value;
+    for( ; left < right; ++left, --right){
+        value = *left;
+        *left = *right;
+        *right = value;
+    }
+}
+
+void swap_any(void* begin, void* end, size_t width)
+{
+    CGL_ASSERT(begin < end);
+    byte_t* first = static_cast<byte_t*>(begin);
+    byte_t* last  = static_cast<byte_t*>(end) - width;
+    byte_t* buf   = static_cast<byte_t*>(malloc(width));
+    while(first < last){
+        memcpy(buf, first, width);
+        memcpy(first, last, width);
+        memcpy(last, buf, width);
+        first += width;
+        last  -= width;
+    }
+    free(buf);
+}
+
+void memswap(void* begin, void* end, size_t type)
+{
+    switch(type){
+    case 1:
+        return memswapT<uint8_t>(begin, end);
+    case 2:
+        return memswapT<uint16_t>(begin, end);
+    case 3:
+        return memswapT< array<byte_t, 3> >(begin, end);
+    case 4:
+        return memswapT<uint32_t>(begin, end);
+    case 5:
+        return memswapT< array<byte_t, 5> >(begin, end);
+    case 6:
+        return memswapT< array<byte_t, 6> >(begin, end);
+    case 7:
+        return memswapT< array<byte_t, 7> >(begin, end);
+    case 8:
+        return memswapT<uint64_t>(begin, end);
+    case 9:
+        return memswapT< array<byte_t, 9> >(begin, end);
+    case 10:
+        return memswapT< array<byte_t, 10> >(begin, end);
+    case 11:
+        return memswapT< array<byte_t, 11> >(begin, end);
+    case 12:
+        return memswapT< array<byte_t, 12> >(begin, end);
+    case 13:
+        return memswapT< array<byte_t, 13> >(begin, end);
+    case 14:
+        return memswapT< array<byte_t, 14> >(begin, end);
+    case 15:
+        return memswapT< array<byte_t, 15> >(begin, end);
+    case 16:
+        return memswapT< array<byte_t, 16> >(begin, end);
+    default:
+        return swap_any(begin, end, type);
+    }
+}
+
+inline void memswap(void* data, size_t size, size_t width)
+{
+    return memswap(data, static_cast<byte_t*>(data) + size * width, width);
+}
+
+}//end namespace cgl
+
+#endif //MEMSWAP_HPP_20191216074925

@@ -1,0 +1,211 @@
+object frmColorPad: TfrmColorPad
+  Left = 0
+  Top = 0
+  BorderStyle = bsToolWindow
+  Caption = #35843#33394#26495
+  ClientHeight = 361
+  ClientWidth = 424
+  Color = clBtnFace
+  Font.Charset = GB2312_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -13
+  Font.Name = #24494#36719#38597#40657
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poMainFormCenter
+  OnCreate = FormCreate
+  OnShow = FormShow
+  PixelsPerInch = 96
+  TextHeight = 19
+  object btnOK: TButton
+    Left = 264
+    Top = 331
+    Width = 75
+    Height = 25
+    Caption = #30830#23450'(&O)'
+    Default = True
+    TabOrder = 0
+    OnClick = btnOKClick
+  end
+  object btnCancel: TButton
+    Left = 345
+    Top = 331
+    Width = 75
+    Height = 25
+    Cancel = True
+    Caption = #21462#28040'(&C)'
+    TabOrder = 1
+    OnClick = btnCancelClick
+  end
+  object pnlPad: TPanel
+    Left = 0
+    Top = 0
+    Width = 424
+    Height = 325
+    Align = alTop
+    Ctl3D = False
+    ParentCtl3D = False
+    TabOrder = 2
+    object shpColor: TShape
+      Left = 4
+      Top = 8
+      Width = 90
+      Height = 90
+      Brush.Color = clBlack
+    end
+    object R: TLabel
+      Left = 10
+      Top = 216
+      Width = 8
+      Height = 19
+      Caption = 'R'
+    end
+    object G: TLabel
+      Left = 10
+      Top = 242
+      Width = 10
+      Height = 19
+      Caption = 'G'
+    end
+    object B: TLabel
+      Left = 10
+      Top = 269
+      Width = 8
+      Height = 19
+      Caption = 'B'
+    end
+    object A: TLabel
+      Left = 10
+      Top = 296
+      Width = 9
+      Height = 19
+      Caption = 'A'
+    end
+    object imgColorpad: TImage
+      Left = 100
+      Top = 4
+      Width = 320
+      Height = 200
+      Cursor = crHandPoint
+      AutoSize = True
+      OnMouseDown = imgColorpadMouseDown
+      OnMouseMove = imgColorpadMouseMove
+      OnMouseUp = imgColorpadMouseUp
+    end
+    object shpPreview: TShape
+      Left = 4
+      Top = 110
+      Width = 90
+      Height = 90
+    end
+    object tkbRed: TTrackBar
+      Left = 100
+      Top = 214
+      Width = 320
+      Height = 25
+      Cursor = crHandPoint
+      Max = 255
+      PageSize = 8
+      TabOrder = 0
+      TickStyle = tsNone
+      OnChange = tkbRedChange
+    end
+    object tkbGreen: TTrackBar
+      Left = 100
+      Top = 240
+      Width = 320
+      Height = 25
+      Cursor = crHandPoint
+      Max = 255
+      PageSize = 8
+      TabOrder = 1
+      TickStyle = tsNone
+      OnChange = tkbRedChange
+    end
+    object tkbBlue: TTrackBar
+      Left = 100
+      Top = 267
+      Width = 320
+      Height = 25
+      Cursor = crHandPoint
+      Max = 255
+      PageSize = 8
+      TabOrder = 2
+      TickStyle = tsNone
+      OnChange = tkbRedChange
+    end
+    object tkbAlpha: TTrackBar
+      Left = 100
+      Top = 294
+      Width = 320
+      Height = 25
+      Cursor = crHandPoint
+      Max = 255
+      PageSize = 8
+      Position = 255
+      TabOrder = 3
+      TickStyle = tsNone
+      OnChange = tkbRedChange
+    end
+    object edtRed: TEdit
+      Left = 28
+      Top = 214
+      Width = 60
+      Height = 25
+      Alignment = taCenter
+      MaxLength = 3
+      NumbersOnly = True
+      TabOrder = 4
+      Text = '0'
+      OnChange = edtRedChange
+    end
+    object edtGreen: TEdit
+      Left = 28
+      Top = 240
+      Width = 60
+      Height = 25
+      Alignment = taCenter
+      MaxLength = 3
+      NumbersOnly = True
+      TabOrder = 5
+      Text = '0'
+      OnChange = edtRedChange
+    end
+    object edtBlue: TEdit
+      Left = 28
+      Top = 267
+      Width = 60
+      Height = 25
+      Alignment = taCenter
+      MaxLength = 3
+      NumbersOnly = True
+      TabOrder = 6
+      Text = '0'
+      OnChange = edtRedChange
+    end
+    object edtAlpha: TEdit
+      Left = 28
+      Top = 294
+      Width = 60
+      Height = 25
+      Alignment = taCenter
+      MaxLength = 3
+      NumbersOnly = True
+      TabOrder = 7
+      Text = '0'
+      OnChange = edtRedChange
+    end
+  end
+  object ccbColor: TColorBox
+    Left = 3
+    Top = 331
+    Width = 200
+    Height = 22
+    Selected = clScrollBar
+    Style = [cbCustomColors]
+    DropDownCount = 16
+    TabOrder = 3
+    OnChange = ccbColorChange
+    OnGetColors = ccbColorGetColors
+  end
+end

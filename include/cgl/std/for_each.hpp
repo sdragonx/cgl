@@ -16,8 +16,8 @@ namespace cgl{
 
 //std::function<bool (const int & , const int &)>
 
-template <typename InputIterator, typename Function>
-inline Function for_each(InputIterator first, InputIterator last, Function function)
+template <typename Iterator, typename Function>
+inline Function for_each(Iterator first, Iterator last, Function function)
 {
     for(; first != last; ++first){
         function(*first);

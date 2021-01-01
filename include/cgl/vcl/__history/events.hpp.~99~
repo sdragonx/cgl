@@ -1,0 +1,193 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ events.hpp
+
+ 2020-02-21 23:41:58
+
+*/
+#ifndef EVENTS_HPP_20200221234158
+#define EVENTS_HPP_20200221234158
+
+#include "base.hpp"
+#include <map>
+
+namespace cgl{
+namespace vcl{
+
+class TEventsWapper : public TControl
+{
+__published:
+    __property OnMouseDown;
+    __property OnMouseMove;
+    __property OnMouseUp;
+	__property OnMouseWheel;    //部分控件没有关联这个事件
+	__property OnMouseEnter;
+	__property OnMouseLeave;
+};
+
+class TCommonEvents
+{
+private:
+    vec2i mouse;
+    int button;
+
+    struct TMouseEvents{
+        TMouseEvent OnMouseDown;
+        TMouseMoveEvent OnMouseMove;
+        TMouseEvent OnMouseUp;
+    };
+
+public:
+	void SetTouch(TControl* Sender)
+	{
+		TEventsWapper* obj = (TEventsWapper*)(Sender);
+
+		SaveTouchEvents(Sender);
+
+		obj->OnMouseDown = Touth_MouseDown;
+		obj->OnMouseMove = Touth_MouseMove;
+		obj->OnMouseUp   = Touth_MouseUp;
+	}
+
+	void ResetTouch(TControl* Sender)
+	{
+		LoadTouchEvents(Sender);
+	}
+
+
+	//
+	// LinkLabel
+	//
+
+	void LinkLabel(TLabel* Label)
+	{
+		Label->OnMouseEnter = LinkLabel_MouseEnter;
+		Label->OnMouseLeave = LinkLabel_MouseLeave;
+    }
+
+	//
+	// EditLabel
+	//
+
+	void __fastcall EditLabel_Exit(TObject *Sender)
+	{
+		TMemo* Edit = dynamic_cast<TMemo*>(Sender);
+		TLabel* Label = reinterpret_cast<TLabel*>(Edit->Tag);
+		if(Label){
+			Label->Caption = Edit->Text;
+		}
+		Edit->Free();
+	}
+
+	void __fastcall TfrmMain::Memo2KeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+	{
+		TMemo* Edit = dynamic_cast<TMemo*>(Sender);
+		TLabel* Label = reinterpret_cast<TLabel*>(Edit->Tag);
+		switch(Key){
+		case VK_ESCAPE:
+			Edit->Free();
+			break;
+		case VK_RETURN:
+			if(Label){
+				Label->Caption = Edit->Text;
+			}
+			break;
+		}
+	}
+
+private:
+	//
+	// 鼠标拖动控件
+	//
+    std::map<TControl*, TMouseEvents> MouseEvents;
+
+    void SaveTouchEvents(TControl* Sender)
+    {
+        TEventsWapper* obj = (TEventsWapper*)(Sender);
+        TMouseEvents events;
+        events.OnMouseDown = obj->OnMouseDown;
+        events.OnMouseMove = obj->OnMouseMove;
+        events.OnMouseUp   = obj->OnMouseUp;
+        MouseEvents[Sender] = events;
+    }
+
+    void LoadTouchEvents(TControl* Sender)
+    {
+        std::map<TControl*, TMouseEvents>::iterator i = MouseEvents.find(Sender);
+        if(i != MouseEvents.end()){
+            TEventsWapper* obj = (TEventsWapper*)(Sender);
+            obj->OnMouseDown = i->second.OnMouseDown;
+            obj->OnMouseMove = i->second.OnMouseMove;
+            obj->OnMouseUp   = i->second.OnMouseUp;
+            MouseEvents.erase(obj);
+        }
+    }
+
+    void __fastcall Touth_MouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y)
+    {
+        TControl* obj = dynamic_cast<TControl*>(Sender);
+        mouse = vec2i(X, Y);
+        if(Button == mbLeft){
+            button = 1;
+        }
+        TMouseEvent Event = MouseEvents[obj].OnMouseDown;
+        if(Event)Event(Sender, Button, Shift, X, Y);
+    }
+
+    void __fastcall Touth_MouseMove(TObject *Sender, TShiftState Shift, int X, int Y)
+    {
+        TControl* obj = dynamic_cast<TControl*>(Sender);
+        if(button){
+            obj->Left += X - mouse.x;
+            obj->Top  += Y - mouse.y;
+        }
+        TMouseMoveEvent Event = MouseEvents[obj].OnMouseMove;
+        if(Event)Event(Sender, Shift, X, Y);
+    }
+
+    void __fastcall Touth_MouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y)
+    {
+        TControl* obj = dynamic_cast<TControl*>(Sender);
+        button = 0;
+        TMouseEvent Event = MouseEvents[obj].OnMouseUp;
+        if(Event)Event(Sender, Button, Shift, X, Y);
+	}
+
+	//
+	// LinkLabel
+	//
+
+	void __fastcall LinkLabel_MouseEnter(TObject *Sender)
+	{
+		TLabel* Label = dynamic_cast<TLabel*>(Sender);
+		if(Label)
+		{
+			Label->Font->Style = Label->Font->Style<<fsUnderline;
+			Label->Font->Color = clBlue;
+		}
+	}
+
+	void __fastcall LinkLabel_MouseLeave(TObject *Sender)
+	{
+		TLabel* Label = dynamic_cast<TLabel*>(Sender);
+		if(Label){
+			Label->Font->Style = Label->Font->Style>>fsUnderline;
+			Label->Font->Color = clBlack;
+		}
+	}
+};
+
+CGL_PUBLIC_DECLARE TCommonEvents CommonEvents = TCommonEvents();
+
+//有点控件不执行
+void TControl_SetMouseWheel(TControl* Sender, TMouseWheelEvent Event)
+{
+    TEventsWapper* obj = (TEventsWapper*)(Sender);
+    obj->OnMouseWheel = Event;
+}
+
+}//end namespace vcl
+}//end namespace cgl
+
+#endif //EVENTS_HPP_20200221234158

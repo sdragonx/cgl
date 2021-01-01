@@ -1,0 +1,341 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ memblock.hpp
+
+ 2018-07-27 11:58:11
+
+ revise  2020-1-31 8:33:24
+
+ 只用来管理内存，不负责初始化和构造
+
+*/
+#ifndef MEMBLOCK_HPP_20180727115811
+#define MEMBLOCK_HPP_20180727115811
+
+#include <cgl/memory/allocator.hpp>
+
+namespace cgl{
+
+#pragma pack(push, 1)
+
+template<typename T>
+class memlink
+{
+public:
+    typedef T value_type;
+    typedef value_type* pointer;
+    typedef const value_type* const_pointer;
+    typedef value_type&    reference;
+    typedef const value_type& const_reference;
+    typedef pointer iterator;
+    typedef const_pointer const_iterator;
+    typedef size_t size_type;
+
+protected:
+    const_pointer m_data;
+    size_type m_size;
+
+public:
+    memlink() : m_data(null), m_size(0) { /*void*/ }
+    memlink(pointer p, size_t size) : m_data(p), m_size(size)  { /*void*/ }
+    memlink(iterator first, iterator last) : m_data(p), m_size(last - first) { /*void*/ }
+    ~memlink() { this->dispose(); }
+
+    void link(pointer p, size_t size) { m_data = p; m_size = size; }
+    void link(iterator first, iterator last) { this->link(first, last - first); }
+    void dispose() { m_data = null; m_size = 0; }
+
+    pointer begin() { return m_data; }
+    const_pointer begin()const { return m_data; }
+    pointer end() { return m_data + m_size; }
+    const_pointer end()const { return m_data + m_size; }
+    reference operator[](size_type index){ return m_data[index]; }
+    const_reference operator[](size_type index)const { return m_data[index]; }
+
+    pointer data() { return m_data; }
+    const_pointer data()const { return m_data; }
+
+    size_t size()const { return m_size; }
+    bool resize(size_t size) { return size < m_size; }
+};
+
+template<typename T>
+class memlink<const T>
+{
+public:
+    typedef T value_type;
+    typedef value_type* pointer;
+    typedef const value_type* const_pointer;
+    typedef value_type&    reference;
+    typedef const value_type& const_reference;
+    typedef pointer iterator;
+    typedef const_pointer const_iterator;
+    typedef size_t size_type;
+
+protected:
+    const_pointer m_data;
+    size_type m_size;
+
+public:
+    memlink() : m_data(null), m_size(0)  { /*void*/ }
+    memlink(const_pointer p, size_t size) : m_data(p), m_size(size)  { /*void*/ }
+    memlink(const_iterator first, const_iterator last) : m_data(p), m_size(last - first) { /*void*/ }
+    ~memlink() { this->dispose(); }
+
+    void link(const_pointer p, size_t size) { m_data = p; m_size = size; }
+    void link(const_iterator first, const_iterator last) { this->link(first, last - first); }
+    void dispose() { m_data = null; m_size = 0; }
+
+    const_pointer begin()const { return this->data(); }
+    const_pointer end()const { return this->data() + this->size(); }
+    const_reference operator[](size_type index)const { return this->data()[index]; }
+
+    const_pointer data()const { return m_data; }
+
+    size_t size()const { return m_size; }
+    bool resize(size_t size) { return size < m_size; }
+};
+
+
+template<typename T, typename A = malloc_allocator<T> >
+class memblock
+{
+public:
+    typedef memblock this_type;
+    typedef T value_type;
+    typedef A allocator_type;
+    typedef value_type* pointer;
+    typedef const value_type* const_pointer;
+    typedef value_type&    reference;
+    typedef const value_type& const_reference;
+    typedef pointer iterator;
+    typedef const_pointer const_iterator;
+    typedef size_t size_type;
+
+    static allocator_type allocator;
+
+protected:
+    pointer m_data;
+    size_type m_size;
+
+public:
+    memblock() : m_data(null), m_size() { }
+    memblock(size_t n) : m_data(null), m_size()
+    {
+        this->resize(n);
+    }
+
+    ~memblock()
+    {
+        dispose();
+    }
+
+    void dispose()
+    {
+        if(m_data){
+            allocator.deallocate(m_data, m_size);
+            m_data = null;
+        }
+        m_size = 0;
+    }
+
+    pointer begin() { return m_data; }
+    const_pointer begin()const { return m_data; }
+    pointer end() { return m_data + m_size; }
+    const_pointer end()const { return m_data + m_size; }
+    reference operator[](size_type index){ return m_data[index]; }
+    const_reference operator[](size_type index)const { return m_data[index]; }
+
+    pointer data() { return m_data; }
+    const_pointer data()const { return m_data; }
+
+    bool empty()const
+    {
+        return m_size == 0;
+    }
+
+    size_t size()const
+    {
+        return m_size;
+    }
+
+    bool resize(size_t size)
+    {
+        pointer p = allocator.allocate(size);
+        if(!p){
+            return false;
+        }
+        if(m_data){
+            std::copy(this->begin(), this->end(), p);
+            allocator.deallocate(m_data, m_size);
+        }
+        m_data = p;
+        m_size = size;
+        return true;
+    }
+
+    this_type& operator=(const this_type& block)
+    {
+        this->dispose();
+        if(!block.empty()){
+            this->resize(block.size());
+            std::copy(block.begin(), block.end(), this->begin());
+        }
+        return *this;
+    }
+
+    void swap(this_type& block)
+    {
+        std::swap(m_data, block.m_data);
+        std::swap(m_size, block.m_size);
+    }
+};
+
+template<typename T, typename A>
+TYPENAME memblock<T, A>::allocator_type memblock<T, A>::allocator = memblock<T, A>::allocator_type();
+
+
+
+template<typename T, size_t SIZE, typename Ax = malloc_allocator<T> >
+class xmemblock
+{
+public:
+    typedef xmemblock this_type;
+    typedef T value_type;
+    typedef Ax allocator_type;
+    typedef value_type* pointer;
+    typedef const value_type* const_pointer;
+    typedef value_type&    reference;
+    typedef const value_type& const_reference;
+    typedef pointer iterator;
+    typedef const_pointer const_iterator;
+    typedef size_t size_type;
+
+    enum{
+        CACHE_SIZE = SIZE
+    };
+
+    static allocator_type allocator;
+
+protected:
+    union _buf_t{
+        value_type  cache[CACHE_SIZE];
+        value_type* data;
+        _buf_t():data(null){/*void*/}
+    }m_buf;
+    size_type m_size;
+
+public:
+    xmemblock() : m_buf(), m_size()
+    {
+    }
+
+    xmemblock(size_t size) : m_buf(), m_size()
+    {
+        resize(size);
+    }
+
+    ~xmemblock()
+    {
+        dispose();
+    }
+
+    void dispose()
+    {
+        if(!this->is_cached()){
+            this->allocator.deallocate(m_buf.data, m_size);
+        }
+        m_buf.data = null;
+        m_size = 0;
+    }
+
+    pointer begin() { return this->data(); }
+    const_pointer begin()const { return this->data(); }
+    pointer end() { return this->data()+ this->size(); }
+    const_pointer end()const { return this->data()+ this->size(); }
+    reference operator[](size_type index){ return this->data()[index]; }
+    const_reference operator[](size_type index)const { return this->data()[index]; }
+
+    pointer data()
+    {
+        return is_cached() ? m_buf.cache : m_buf.data;
+    }
+
+    const_pointer data()const
+    {
+        return is_cached() ? m_buf.cache : m_buf.data;
+    }
+
+    bool empty()const
+    {
+        return !m_size;
+    }
+
+    size_t size()const
+    {
+        return this->is_cached() ? CACHE_SIZE : m_size;
+    }
+
+    bool resize(size_t size)
+    {
+        if(this->size() < size)
+        {
+            pointer p = allocator.allocate(size);
+            if(!p){
+                return false;
+            }
+            std::copy(this->begin(), this->end(), p);
+            if(!is_cached()){
+                allocator.deallocate(m_buf.data, this->size());
+            }
+            m_buf.data = p;
+            m_size = size;
+        }
+        return true;
+    }
+
+    this_type& operator=(const this_type& block)
+    {
+        this->dispose();
+        if(!block.empty()){
+            this->resize(block.size);
+            std::copy(this->begin(), this->end(), p);
+        }
+        return *this;
+    }
+
+    void swap(this_type& block)
+    {
+        std::swap(m_buf, block.m_buf);
+        std::swap(m_size, block.m_size);
+    }
+
+protected:
+    inline bool is_cached()const { return !m_size; }
+};
+
+template<typename T, size_t S, typename A>
+TYPENAME xmemblock<T, S, A>::allocator_type xmemblock<T, S, A>::allocator = xmemblock<T, S, A>::allocator_type();
+
+#pragma pack(pop)
+
+//
+// swap
+//
+
+template<typename T, typename A>
+void swap(memblock<T, A>& left, memblock<T, A>& right)
+{
+    left.swap(right);
+}
+
+template<typename T, size_t SIZE, typename Ax>
+void swap(xmemblock<T, SIZE, A>& left, xmemblock<T, SIZE, A>& right)
+{
+    left.swap(right);
+}
+
+}//end namespace cgl
+
+#endif //MEMBLOCK_HPP_20180727115811

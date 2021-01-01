@@ -1,0 +1,25 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ pkcrypt.hpp
+
+ 2020-05-28 15:44:55
+
+ zip传统加密解密
+
+*/
+#ifndef ZIP_PKCRYPT_HPP_20200528154455
+#define ZIP_PKCRYPT_HPP_20200528154455
+
+#include <cgl/crypto/pkcrypto.hpp>
+#include "typedef.hpp"
+
+namespace cgl{
+namespace io{
+
+
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //ZIP_PKCRYPT_HPP_20200528154455

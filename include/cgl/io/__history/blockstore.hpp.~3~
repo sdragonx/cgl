@@ -1,0 +1,302 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ block.hpp
+
+ 2018-09-21 20:33:11
+
+ 2018/9/25 23:07
+
+ BLOCK_TYPE_ROOT
+    sizeof = 64  offset = 0
+ BLOCK_TYPE_FREE
+    sizeof = 64  offset = 64
+
+ BLOCK_TYPE_LIST
+     sizeof = 128
+    baseinfo + char[64]
+
+ BLOCK_TYPE_FILE
+    sizeof = 128
+    baseinfo + char[64]
+    FILE 是一个链表，由subnode链接。第一个block type是BLOCK_TYPE_FILE
+    后续的block type是BLOCK_TYPE_DATA
+    FILE 的空间大小是各个block.capacity之和
+    FILE 的数据大小是第一个block.size
+
+ BLOCK_TYPE_DATA
+    sizeof = 64
+    baseinfo
+
+ BLOCK_TYPE_LINK
+    未实现
+    一个链接
+    计划使用subnode实现
+
+
+未实现的32位构架，64字节
+typedef struct BLOCK32
+{
+    typedef __int32 fsize_t;
+    typedef __int64 ftime_t;
+    uint32_t type;  //symbol;
+    fsize_t parent;
+    fsize_t child;
+    fsize_t pnode
+    fsize_t left;
+    fsize_t right;
+    fsize_t size;
+    fsize_t capacity;
+    char    name[32];
+}BLOCK32;
+
+set_attribute("LIST")
+get_attribute("ROOT");
+get_attribute("FREE");
+get_attribute("DATA");
+get_attribute("LINK");
+get_attribute("FILE");
+get_attribute("ANSI");
+get_attribute("UTF8");
+get_attribute("CH16");
+get_attribute("CH32");
+
+*/
+#ifndef BLOCK_BASE_H_201408052240
+#define BLOCK_BASE_H_201408052240
+
+#pragma onces
+
+#include <cgl/public.h>
+#include <cgl/io.hpp>
+#include <cgl/memory.hpp>
+#include <cgl/string.hpp>
+#include <cgl/hash.hpp>
+
+namespace cgl{
+namespace io{
+
+typedef fsize_t block_t;
+
+const fsize_t BLOCK_MAX      = 140737488355327ull;//127TB
+const int64_t ROOT_ELEMENT   = 0;
+const int64_t FREE_ELEMENT   = 64;
+
+#ifndef BLOCK_MAX_NAME
+    #define BLOCK_MAX_NAME 64
+#endif
+
+//enum block
+const int BLOCK_FILE  = 1;
+const int BLOCK_LIST  = 2;
+const int BLOCK_CHILD = 4;
+const int BLOCK_LINK  = 8;
+const int BLOCK_ANY   = BLOCK_FILE | BLOCK_LIST | BLOCK_CHILD | BLOCK_LINK;
+
+//block types
+const uint32_t BLOCK_TYPE_ROOT = gen_code32<'R', 'O', 'O', 'T'>::value;
+const uint32_t BLOCK_TYPE_FREE = gen_code32<'F', 'R', 'E', 'E'>::value;
+const uint32_t BLOCK_TYPE_USER = gen_code32<'U', 'S', 'E', 'R'>::value;
+const uint32_t BLOCK_TYPE_LIST = gen_code32<'L', 'I', 'S', 'T'>::value;
+const uint32_t BLOCK_TYPE_FILE = gen_code32<'F', 'I', 'L', 'E'>::value;
+const uint32_t BLOCK_TYPE_DATA = gen_code32<'D', 'A', 'T', 'A'>::value;
+const uint32_t BLOCK_TYPE_LINK = gen_code32<'L', 'I', 'N', 'K'>::value;
+
+//error -1~-63
+const int BLOCK_ERROR = -1;
+const int BLOCK_ERROR_FILE_OPEN = -2;
+const int BLOCK_ERROR_FORMAT = -3;
+const int BLOCK_EOF = -4;
+
+const int BLOCK_IS_EXISTS = -5;
+
+const int BLOCK_IS_ROOT = -10;
+const int BLOCK_IS_LIST = -11;
+const int BLOCK_IS_FILE = -12;
+const int BLOCK_IS_DATA = -13;
+const int BLOCK_IS_LINK = -14;
+
+const int BLOCK_IS_NOT_ROOT = -20;
+const int BLOCK_IS_NOT_LIST = -21;
+const int BLOCK_IS_NOT_FILE = -22;
+const int BLOCK_IS_NOT_DATA = -23;
+const int BLOCK_IS_NOT_LINK = -24;
+
+#pragma pack(push, 1)
+
+class BLOCK_BASE
+{
+public:
+    typedef uint64_t fsize_t;
+
+    uint32_t type;
+    FILE_ATTRIB attrib;
+    fsize_t root    :48;    //parent block
+    fsize_t subnode :48;    //child or next block
+    fsize_t pnode   :48;    //pnode left right is bintree
+    fsize_t left    :48;
+    fsize_t right   :48;
+    fsize_t size    :48;    //data size
+    fsize_t capacity:48;    //reserve size
+    ftime_t ctime;          //creation time
+    ftime_t wtime;          //write time
+    char name[0];           //block name or bindata
+
+    void init(int block_type)
+    {
+        memset(this, 0, get_size(block_type));
+        type = block_type;
+    }
+
+    bool is_file(uint32_t block_type)const
+    {
+        return block_type == BLOCK_TYPE_LIST || block_type == BLOCK_TYPE_FILE;
+    }
+
+    bool is_file()const
+    {
+        return this->is_file(type);
+    }
+
+    size_t get_size(uint32_t block_type)const
+    {
+        if(is_file(block_type)){
+            return sizeof(BLOCK_BASE) + BLOCK_MAX_NAME;
+        }
+        else{
+            return sizeof(BLOCK_BASE);
+        }
+    }
+
+    size_t get_size()const
+    {
+        return this->get_size(type);
+    }
+
+    const char* get_name()const
+    {
+        if(is_file()){
+            return name;
+        }
+        return null;
+    }
+
+    void set_name(const char* a_name)
+    {
+        if(is_file()){
+            strncpy(name, a_name, BLOCK_MAX_NAME);
+        }
+    }
+
+    BLOCK_BASE& operator=(const BLOCK_BASE& block)
+    {
+        memcpy(this, &block, block.get_size());
+        return *this;
+    }
+};
+
+//这里有个警告
+class BLOCK : public BLOCK_BASE
+{
+public:
+    char name[MAX_NAME];
+};
+
+#pragma pack(pop)
+
+class storage
+{
+private:
+    typedef lru_cache<BLOCK> cache_type;
+    typedef cache_type::buffer_type buffer_type;
+    io::file<char> m_io;
+    cache_type m_cache;
+
+    struct STORE    //header of store file
+    {
+        BLOCK_BASE root;    //主目录
+        BLOCK_BASE free;    //回收空闲空间
+        BLOCK_BASE user;    //未实现
+        BLOCK_BASE x;       //未使用
+        char  meta[256];    //占位符
+    }m_store;
+    const static size_t ROOT_SIZE = sizeof(STORE);    //512
+public:
+    storage();
+    ~storage();
+    int  open(const char* fn, int mode, int share);
+    int  open(const wchar_t* fn, int mode, int share);
+    void close();
+
+    bool is_open();
+
+    int  format(fsize_t capacity = BLOCK_MAX);
+
+    //空间管理函数
+    fsize_t alloc(fsize_t parent, const char* name, fsize_t size, int attrib);
+    int     free(fsize_t block);
+    fsize_t size(fsize_t block);
+    fsize_t resize(fsize_t block, fsize_t size);
+    fsize_t capacity(fsize_t block);    //统计block空间大小
+
+    //属性函数
+    int get_info(fsize_t block, BLOCK_BASE* info);
+    int set_name(fsize_t block, const char* name);
+    int set_ctime(fsize_t block, ftime_t time);    //create time
+    int set_wtime(fsize_t block, ftime_t time);    //write time
+
+    //读写函数
+    fsize_t read(fsize_t block, fsize_t seekpos, void* data, fsize_t size);
+    fsize_t write(fsize_t block, fsize_t seekpos, const void* data, fsize_t size);
+
+    //查找函数 成功返回block，失败返回负数，未找到返回0
+    fsize_t find(fsize_t parent, const char* name);
+
+    //enum blocks
+    size_t ls(std::vector<fsize_t>& ls, fsize_t block, int mode = BLOCK_FILE|BLOCK_LIST|BLOCK_CHILD);
+
+    //check block is list
+    bool is_list(fsize_t block)
+    {
+        return block == ROOT_ELEMENT || block == FREE_ELEMENT || blocks(block).type == BLOCK_TYPE_LIST;
+    }
+
+private:
+    int open(const char* afn, const wchar_t* wfn, int mode, int share);
+
+    //block 管理函数
+    fsize_t alloc(fsize_t size);
+    int append(fsize_t parent, fsize_t block);
+
+    int insert(fsize_t parent, fsize_t pnode, fsize_t block);
+    int remove(fsize_t block);
+
+    //属性写入
+    int block_set(fsize_t block, const BLOCK_BASE* info);
+
+    //buffered block
+    BLOCK_BASE& blocks(fsize_t address);
+    void update(fsize_t address);
+
+    inline fsize_t size_align(fsize_t size)
+    {
+        return (size + 63) & ~63;
+    }
+
+    fsize_t block_next(fsize_t block)
+    {
+        BLOCK_BASE* b = &blocks(block);
+        return block + b->get_size() + b->capacity;
+    }
+
+    //enum_block
+    void enum_block(std::vector<fsize_t>& ls, fsize_t block, int mode);
+
+};
+
+}//end namespace io
+}//end namespace cgl
+
+#include "blockstore.cpp"
+
+#endif //BLOCK_BASE_H_201408052240

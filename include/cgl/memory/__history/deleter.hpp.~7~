@@ -1,0 +1,106 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ deleter.hpp
+
+ sdragon 2006-11-23 14:03:48
+
+*/
+#ifndef DELETER_HPP_20061123140348
+#define DELETER_HPP_20061123140348
+
+#include <cgl/public.h>
+
+namespace cgl{
+
+void safe_free(void* &p)
+{
+    if(p){
+        std::free(p);
+        p = nullptr;
+    }
+}
+
+template<typename T>
+void safe_delete(T* &p)
+{
+    if(p){
+        delete p;
+        p = nullptr;
+    }
+}
+
+template<typename T>
+void safe_delete(T* &p, size_t size)
+{
+    if(p){
+        delete[] p;
+        p = nullptr;
+    }
+}
+
+template<typename T>
+void delete_array(T* p, size_t size)
+{
+    for (size_t i = 0; i < size; ++i) {
+        safe_delete(p[i]);
+    }
+}
+
+//for com object
+template<typename T>
+void safe_release(T* &p)
+{
+    if(p){
+        p->Release();
+        p = NULL;
+    }
+}
+
+template<typename T>
+class deleter
+{
+public:
+    typedef T* type;
+    deleter(type &p) : m_ptr(p)
+    {
+    }
+    ~deleter()
+    {
+        if(m_ptr){
+            delete m_ptr;
+            m_ptr = NULL;
+        }
+    }
+    operator type(){return m_ptr;}
+private:
+    type &m_ptr;
+    deleter(const deleter&);
+    void operator=(const deleter&);
+};
+
+template<typename T>
+class array_deleter
+{
+public:
+    typedef T* type;
+    array_deleter(type &p) : m_ptr(p)
+    {
+    }
+    ~array_deleter()
+    {
+        if(m_ptr){
+            delete []m_ptr;
+            m_ptr = NULL;
+        }
+    }
+    operator type(){return m_ptr;}
+private:
+    type &m_ptr;
+    array_deleter(const array_deleter&);
+    void operator=(const array_deleter&);
+};
+
+}//end namespace cgl
+
+#endif //DELETER_HPP_20061123140348

@@ -8,61 +8,78 @@
 #ifndef SPINE2_1025_HPP_20180114120209
 #define SPINE2_1025_HPP_20180114120209
 
-#pragma warn -8105
-
-#include <stdlib.h>
-
 #define SPINE_SHORT_NAMES
 
-#ifndef __STDC_VERSION__
-#define __STDC_VERSION__
-#endif
+#define CGL_SPINE_VERSION 21025
 
-#define CGL_SPINE_VERSION 2.1025
+#ifdef __BORLANDC__
+ #define SPINE_STD std::
+#else
+ #define SPINE_STD
+#endif
 
 #define SPINE_2_1025_FILE(f) <cgl/external/spine2.1025/f>
 
 namespace spine{
 
-#define fmodf std::fmod
-#define _strdup std::strdup
+#ifdef __STDC_VERSION__
+ #define fmodf   SPINE_STD fmod
+ #define _strdup SPINE_STD strdup
 
 float acosf(float n)
 {
 	if(n < -1.0f)n = -1.0f;
 	if(n > 1.0f)n = 1.0f;
-	return std::acos(n);
+	return acos(n);
 }
+#endif
 
-#if defined CGL_SPINE_STATIC_LIB
+}//spine
+
+#if defined(CGL_SPINE_STATIC_LIB) //static library
+
+#include <cstdio>
+#include <cmath>
+
+namespace spine{
+
+extern "C"{
 
 #include SPINE_2_1025_FILE(spine.h)
 #include SPINE_2_1025_FILE(extension.h)
 
+}//extern "C"
+
 #pragma link "spine2.1.25.lib"
 
-#ifdef _DEBUG
-//#pragma link "spine_debug.lib"
-#else
-//#pragma link "spine.lib"
+}
+
+#else//include source
+
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
+namespace spine{
+
+#ifdef __BORLANDC__
+using SPINE_STD sprintf;
+using SPINE_STD sscanf;
+using SPINE_STD FILE;
+using SPINE_STD fopen;
+
+using SPINE_STD atan2f;
+using SPINE_STD cosf;
+using SPINE_STD sinf;
+using SPINE_STD sqrtf;
 #endif
 
-#else
-
-#define sinf std::sin
-#define cosf std::cos
-#define atan2f std::atan2
-#define sqrtf std::sqrt
-
-using std::sprintf;
-using std::sscanf;
-using std::FILE;
-using std::fopen;
-
-int _stricmp(const char* s1, const char* s2)
+inline int _stricmp(const char* s1, const char* s2)
 {
-	return std::stricmp(s1, s2);
+	return SPINE_STD stricmp(s1, s2);
 }
+
+extern "C"{
 
 #include SPINE_2_1025_FILE(Animation.c)
 #include SPINE_2_1025_FILE(AnimationState.c)
@@ -91,8 +108,9 @@ int _stricmp(const char* s1, const char* s2)
 #include SPINE_2_1025_FILE(Slot.c)
 #include SPINE_2_1025_FILE(SlotData.c)
 
-#endif //CGL_SPINE_STATIC_LIB
-
+}//extern "C"
 }// end namespace spine
+
+#endif //CGL_SPINE_STATIC_LIB
 
 #endif//SPINE2_1025_HPP_20180114120209

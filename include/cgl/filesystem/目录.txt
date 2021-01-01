@@ -1,0 +1,13 @@
+%userpath%
+
+%user.picture%
+%user.video%
+#user.video#
+#user.game#
+%user.downloads%
+%user.documents%
+%user.appPath%
+
+%user.program%		c:\Program Files
+%user.appData%
+

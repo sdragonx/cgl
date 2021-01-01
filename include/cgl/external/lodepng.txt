@@ -1,0 +1,21 @@
+#define LODEPNG_COMPILE_ZLIB
+#define LODEPNG_COMPILE_DECODER
+#define LODEPNG_COMPILE_CPP
+
+#include "lodepng.cpp"
+//using namespace lodepng;
+
+
+/*
+	std::vector<uint8_t> buf;
+	LodePNGCompressSettings settings;
+	lodepng_compress_settings_init(&settings);
+	//setting.
+
+	AnsiString s = Memo2->Text;
+	compress(buf, (const uint8_t*)s.c_str(), (size_t)s.Length(), settings);
+
+	print((char*)&buf.front());
+	print(s.Length());
+	print(buf.size());
+	*/

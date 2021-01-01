@@ -1,0 +1,90 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ custom_ui.hpp
+
+ 2020-01-08 17:37:30
+
+*/
+#ifndef CUSTOM_UI_HPP_20200108173730
+#define CUSTOM_UI_HPP_20200108173730
+
+#include <cgl/public.h>
+
+namespace cgl{
+
+class custom_canvas
+{
+public:
+    void* instance;
+
+    int (*on_char_width)(void* ins, wchar_t ch);
+    int (*on_char_height)(void* ins);
+    int (*on_text_width)(void* ins, const wchar_t* text, size_t size);
+    void (*on_putchar)(void* ins, int x, int y, wchar_t ch, uint32_t color);
+    void (*on_textout)(void* ins, int x, int y, const wchar_t* text, size_t size, uint32_t color);
+    void (*on_fillrect)(void* ins, int x, int y, int width, int height, uint32_t color);
+    void (*on_repaint)(void* ins);
+
+    void reset_functions()
+    {
+        custom_canvas
+    }
+
+    int char_width(wchar_t ch)
+    {
+        if(on_char_width){
+            return (*on_char_width)(instance, ch);
+        }
+        return 8;
+    }
+
+    int char_height()
+    {
+        if(on_char_height){
+            return (*on_char_height)(instance);
+        }
+        return 16;
+    }
+
+    int text_width(const wchar_t* text, size_t size)
+    {
+        if(on_text_width){
+            return (*on_text_width)(instance, text, size);
+        }
+        return 0;
+    }
+
+    void putchar(int x, int y, wchar_t ch, uint32_t color)
+    {
+        if(on_putchar){
+            (*on_putchar)(instance, x, y, ch, color);
+        }
+    }
+
+    void textout(int x, int y, const wchar_t* text, size_t size, uint32_t color)
+    {
+        if(on_textout){
+            (*on_textout)(instance, x, y, text, size, color);
+        }
+    }
+
+    void fillrect(int x, int y, int width, int height, uint32_t color)
+    {
+        if(on_fillrect){
+            (*on_fillrect)(instance, x, y, width, height, color);
+        }
+    }
+
+    void repaint()
+    {
+        if(on_repaint){
+            (*on_repaint)(instance);
+        }
+    }
+
+};
+
+}//end namespace cgl
+
+#endif //CUSTOM_UI_HPP_20200108173730

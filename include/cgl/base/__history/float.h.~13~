@@ -1,0 +1,413 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ float.hpp
+
+ 2018-10-31 09:12:07
+
+ //忽略浮点报错
+ //_control87(MCW_EM, MCW_EM);
+
+*/
+#ifndef FLOAT_HPP_20181031091207
+#define FLOAT_HPP_20181031091207
+
+#include <float.h>
+
+#ifdef __BORLANDC__
+
+    #include <_defs.h>
+    #include <math.h>
+
+    namespace std{
+    //#include <fastmath.h>
+    }
+
+#else
+
+    #include <cmath>
+
+#endif
+
+//#ifdef __BORLANDC__
+//namespace std{
+//#include <fastmath.h>
+//}
+//#endif
+
+#if ((defined _MSC_VER && defined _M_X64) || (defined __GNUC__ && defined __x86_64__ && defined __SSE2__))
+    #include <emmintrin.h>
+#endif
+
+#if defined(CGL_PLATFORM_GNUC)//__MINGW32__ only
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
+/*
+#if !defined(CGL_PLATFORM_ANDROID)//clang ??
+
+#define _MCW_DN     0x03000000  // Denormal control
+#define _MCW_EM     0x0008001F  // Error masks
+#define _MCW_IC     0x00040000  // Infinity
+#define _MCW_RC     0x00000300  // Rounding
+#define _MCW_PC     0x00030000  // Precision
+
+#define _RC_NEAR    0x00000000
+#define _PC_24      0x00020000
+#define _PC_53      0x00010000
+#define _PC_64      0x00000000
+
+#define MCW_DN  _MCW_DN
+#define MCW_EM  _MCW_EM
+#define MCW_IC  _MCW_IC
+#define MCW_PC  _MCW_PC
+#define MCW_RC  _MCW_RC
+
+#define RC_NEAR _RC_NEAR
+#define PC_24   _PC_24
+#define PC_53   _PC_53
+#define PC_64   _PC_64
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+unsigned int __cdecl _controlfp (unsigned int unNew, unsigned int unMask) ;
+errno_t __cdecl _controlfp_s(unsigned int *_CurrentState, unsigned int _NewValue, unsigned int _Mask);
+#ifdef __cplusplus
+}
+#endif
+
+#endif//!defined(CGL_PLATFORM_ANDROID)
+*/
+
+#endif//CGL_PLATFORM_GNUC
+
+#ifdef __GNUC__
+
+#include <fenv.h>
+
+void fpe_disable()
+{
+    //#ifndef NDEBUG
+    feclearexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+    //#endif
+}
+#endif
+
+
+/*
+#ifdef __android__
+
+#if __ANDROID_API__ >= __ANDROID_API_L__ || defined(__i386__)
+//fesetround(FE_TOWARDZERO);
+#endif
+
+#endif
+*/
+
+namespace cgl{
+
+#if defined(CGL_PLATFORM_MSVC)
+inline int __cgl_controlfp(int NewValue, int Mask)
+{
+    unsigned int state = 0;
+    return _controlfp_s(&state, NewValue, Mask);
+}
+#elif defined(CGL_PLATFORM_CBUILDER)
+inline int __cgl_controlfp(int NewValue, int Mask)
+{
+    return _controlfp(NewValue, Mask);
+}
+#endif
+
+#ifdef MCW_EM
+void controlfp_def()
+{
+    __cgl_controlfp( PC_24, MCW_PC );
+    __cgl_controlfp( RC_NEAR, MCW_RC );
+}
+
+bool check_controlfp()
+{
+    return ((__cgl_controlfp(0,0) & MCW_PC) == PC_24) && ((__cgl_controlfp(0, 0) & MCW_RC) == RC_NEAR);
+}
+#endif
+
+void fp_default()
+{
+}
+
+//floating point exception
+
+void fpe_enable()
+{
+}
+
+void fpe_disable()
+{
+}
+
+/*
+int32_t float_to_int(float f)
+{
+    int32_t a         = *(int32_t*)(&f);
+    int32_t sign      = (a>>31);
+    int32_t mantissa  = (a&((1<<23)-1))|(1<<23);
+    int32_t exponent  = ((a&0x7fffffff)>>23)-127;
+    int32_t r         = ((uint32_t)(mantissa)<<8)>>(31-exponent);
+    return ((r ^ (sign)) - sign ) &~ (exponent>>31);
+}
+
+
+double float_magic_number(int bits)
+{
+  return 1.5 * pow(2.0, double(bits));
+}
+
+将64位浮点数转换为32位整数
+小数部分将四舍五入到偶数
+
+用于double的magic number是1.5*2^52=6755399441055744.0
+对于double来说，相应的magic number就是1.5*2^36
+编译器优化情况下，比手写汇编快
+*/
+
+//四舍五入，处理的数据范围是-2^22 ~ 2^22-1, -4194304.0 ~ 4194303.0
+inline int32_t f_toint32(float x)
+{
+    //取得符号位，设置掩码
+    uint32_t n = ((*(uint32_t*)&x) & 0x80000000) ? 0xFFC00000 : 0;
+    x += 12582912.0f;
+    return ((*(uint32_t*)&x) & 0x3FFFFF) | n;
+}
+
+inline int32_t f_toint64(double x)
+{
+    x += 6755399441055744.0;
+    return *(int32_t*)&x;
+}
+
+//asm是四舍五入的
+int f_toint_asm(float x)
+{
+    #ifdef _M_IX86
+        #if defined(_MSC_VER) || defined(__BORLANDC__)
+            int t;
+            __asm{
+                fld   x
+                fistp t
+            }
+            return t;
+        #elif defined(__GNUC__)
+            int t;
+            __asm__ __volatile__ (
+                "fistpl %0"
+                : "=m" (t)
+                : "t" (x)
+            );
+            return t;
+        #else
+            return f_toint(x);
+        #endif
+    #else
+    #endif
+}
+
+int round( float value )
+{
+#if (defined _MSC_VER && defined _M_X64) || (defined __GNUC__ && defined __x86_64__ && defined __SSE2__ && !defined __APPLE__)
+    __m128 t = _mm_set_ss( value );
+    return _mm_cvtss_si32(t);
+#elif defined _M_IX86 && (defined _MSC_VER || defined __BORLANDC__)
+    int t;
+    __asm
+    {
+        fld value;
+        fistp t;
+    }
+    return t;
+#elif defined __GNUC__
+    return (int)(lrintf(value));
+#else
+    return (int)(value + (value < 0 ? -0.5f : 0.5f));
+#endif
+}
+
+int round( double value )
+{
+#if (defined _MSC_VER && defined _M_X64) || (defined __GNUC__ && defined __x86_64__ && defined __SSE2__ && !defined __APPLE__)
+    __m128d t = _mm_set_sd( value );
+    return _mm_cvtsd_si32(t);
+#elif defined _M_IX86 && (defined _MSC_VER || defined __BORLANDC__)
+    int t;
+    __asm
+    {
+        fld value;
+        fistp t;
+    }
+    return t;
+#elif defined __GNUC__
+    return (int)(lrint(value));
+#else
+    /* it's ok if round does not comply with IEEE754 standard;
+       the tests should allow +/-1 difference when the tested functions use round */
+    return (int)(value + (value < 0 ? -0.5 : 0.5));
+#endif
+}
+
+inline int round( long double value )
+{
+    return round( double(value) );
+}
+
+int floor32(float x)
+{
+    return round(x - 0.5f);
+}
+
+int ceil32(float x)
+{
+    return round(x + 0.5f);
+}
+
+class half_float
+{
+public:
+    union{
+        struct {
+            uint16_t sign:1;
+            uint16_t exponent:5;
+            uint16_t fraction:10;
+        };
+        uint16_t data;
+    };
+
+public:
+    half_float() : data()
+    {
+    }
+};
+
+}//end namespace cgl
+
+#ifdef CGL_PLATFORM_GNUC
+#pragma GCC diagnostic pop
+#endif
+
+#endif //FLOAT_HPP_20181031091207
+
+/*
+alu.h
+
+static __inline int SetMixerFPUMode(void)
+{
+#if defined(_FPU_GETCW) && defined(_FPU_SETCW)
+    fpu_control_t fpuState, newState;
+    _FPU_GETCW(fpuState);
+    newState = fpuState&~(_FPU_EXTENDED|_FPU_DOUBLE|_FPU_SINGLE |
+                          _FPU_RC_NEAREST|_FPU_RC_DOWN|_FPU_RC_UP|_FPU_RC_ZERO);
+    newState |= _FPU_SINGLE | _FPU_RC_ZERO;
+    _FPU_SETCW(newState);
+#else
+    int fpuState;
+#if defined(HAVE__CONTROLFP)
+    fpuState = _controlfp(0, 0);
+    (void)_controlfp(_RC_CHOP|_PC_24, _MCW_RC|_MCW_PC);
+#elif defined(HAVE_FESETROUND)
+    fpuState = fegetround();
+    fesetround(FE_TOWARDZERO);
+#endif
+#endif
+    return fpuState;
+}
+
+static __inline void RestoreFPUMode(int state)
+{
+#if defined(_FPU_GETCW) && defined(_FPU_SETCW)
+    fpu_control_t fpuState = state;
+    _FPU_SETCW(fpuState);
+#elif defined(HAVE__CONTROLFP)
+    _controlfp(state, _MCW_RC|_MCW_PC);
+#elif defined(HAVE_FESETROUND)
+    fesetround(state);
+#endif
+}
+*/
+
+#if 0
+
+//浮点异常控制
+namespace fpe {
+
+unsigned enable( unsigned mask )
+{
+    boost::ignore_unused(mask);
+
+#if defined(UNDER_CE)
+    /* Not Implemented in Windows CE */
+    return 0;
+#elif defined(BOOST_SEH_BASED_SIGNAL_HANDLING)
+    _clearfp();
+
+#if BOOST_WORKAROUND( BOOST_MSVC, <= 1310)
+    unsigned old_cw = ::_controlfp( 0, 0 );
+    ::_controlfp( old_cw & ~mask, BOOST_FPE_ALL );
+#else
+    unsigned old_cw;
+    if( ::_controlfp_s( &old_cw, 0, 0 ) != 0 )
+        return BOOST_FPE_INV;
+
+    // Set the control word
+    if( ::_controlfp_s( 0, old_cw & ~mask, BOOST_FPE_ALL ) != 0 )
+        return BOOST_FPE_INV;
+#endif
+
+    return ~old_cw & BOOST_FPE_ALL;
+#elif defined(__GLIBC__) && defined(__USE_GNU) && !defined(BOOST_CLANG) && !defined(BOOST_NO_FENV_H)
+    feclearexcept(BOOST_FPE_ALL);
+    int res = feenableexcept( mask );
+    return res == -1 ? (unsigned)BOOST_FPE_INV : (unsigned)res;
+#else
+    /* Not Implemented  */
+    return 0;
+#endif
+}
+
+//____________________________________________________________________________//
+
+unsigned disable( unsigned mask )
+{
+    boost::ignore_unused(mask);
+
+#if defined(UNDER_CE)
+    /* Not Implemented in Windows CE */
+    return 0;
+#elif defined(BOOST_SEH_BASED_SIGNAL_HANDLING)
+    _clearfp();
+
+#if BOOST_WORKAROUND( BOOST_MSVC, <= 1310)
+    unsigned old_cw = ::_controlfp( 0, 0 );
+    ::_controlfp( old_cw | mask, BOOST_FPE_ALL );
+#else
+    unsigned old_cw;
+    if( ::_controlfp_s( &old_cw, 0, 0 ) != 0 )
+        return BOOST_FPE_INV;
+
+    // Set the control word
+    if( ::_controlfp_s( 0, old_cw | mask, BOOST_FPE_ALL ) != 0 )
+        return BOOST_FPE_INV;
+#endif
+
+    return ~old_cw & BOOST_FPE_ALL;
+#elif defined(__GLIBC__) && defined(__USE_GNU) && !defined(BOOST_CLANG) && !defined(BOOST_NO_FENV_H)
+    feclearexcept(BOOST_FPE_ALL);
+    int res = fedisableexcept( mask );
+    return res == -1 ? (unsigned)BOOST_FPE_INV : (unsigned)res;
+#else
+    /* Not Implemented */
+    return BOOST_FPE_INV;
+#endif
+}
+
+#endif

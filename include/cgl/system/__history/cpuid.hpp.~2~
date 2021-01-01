@@ -1,0 +1,60 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ cpuid.hpp
+
+ 2020-04-29 11:21:29
+
+*/
+#ifndef CPUID_HPP_20200429112129
+#define CPUID_HPP_20200429112129
+
+#include <cgl/public.h>
+
+namespace cgl{
+//namespace system{
+
+void cpuid(int id, uint32_t& a, uint32_t& b, uint32_t& c, uint32_t& d)
+{
+    uint32_t x, y, z, w;
+    #if defined(_WIN32) && !defined(__GNUC__)
+        __asm{
+            mov eax,id  //将参数赋值给eax
+            cpuid       //执行cpuid指令
+            mov x,eax   //寄存器取值
+            mov y,ebx
+            mov z,ecx
+            mov w,edx
+        }
+
+    #elif defined(__GNUC__)
+        __asm__(
+            "cpuid"
+            :"=a"(a),
+            "=b"(b),
+            "=c"(c),
+            "=d"(d)
+            :"a"(id)
+        );
+    #endif
+
+    a = x;
+    b = y;
+    c = z;
+    d = w;
+}
+
+inline void cpuid(int id, uint32_t info[4])
+{
+    cpuid(id, info[0], info[1], info[2], info[3]);
+}
+
+inline void cpuid(int id, __x128& info)
+{
+    cpuid(id, info.idata);
+}
+
+//}//end namespace system
+}//end namespace cgl
+
+#endif //CPUID_HPP_20200429112129

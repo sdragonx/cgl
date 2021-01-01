@@ -1,0 +1,115 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ TListView
+
+ 2020-02-16 23:49:27
+
+设置图标大小？
+SendMessage(ListView1->Handle, LVM_SETWORKAREA, 1, (LONG)&rc);
+SendMessage(ListView1->Handle, LVM_SETICONSPACING, 0, 0x10000*64 + 80);
+
+*/
+#ifndef TLISTVIEW_20200216234927
+#define TLISTVIEW_20200216234927
+
+#include <cgl/public.h>
+
+namespace cgl{
+namespace vcl{
+
+//取得Column的Left值
+//2007-1-20 13:43:30 by sdragon
+int TListView_ColumnLeft(TCustomListView* CustomListView, int ColumnIndex)
+{
+    TListView* ListView = dynamic_cast<TListView*>(CustomListView);
+    if(ListView && ColumnIndex<ListView->Columns->Count)
+    {
+        int nLeft = 0;
+        for(int i=0; i<ColumnIndex; ++i)
+        {
+            nLeft += ListView->Column[i]->Width;
+        }
+        return nLeft;
+    }
+    else
+        return -1;
+}
+
+//取得X坐标处的Column索引，失败返回-1
+int TListView_ColumnIndex(TCustomListView* CustomListView, int X)
+{
+    TListView* ListView = dynamic_cast<TListView*>(CustomListView);
+    if(ListView)
+    {
+        int nLeft = 0;
+        X += GetScrollPos(ListView->Handle, SB_HORZ);
+        for(int i=0; i<ListView->Columns->Count; ++i)
+        {
+            if( (X>=nLeft) && ( X<(nLeft += ListView->Column[i]->Width) ) )
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+    else
+        return -1;
+}
+
+//返回SubItem范围，失败返回-1
+int SubItemRect(TListItem* Item, int SubItemIndex, TRect& Rect)
+{
+    /*if(SubItem == 0)
+    {
+        Rect = Item->DisplayRect(drLabel);
+    }
+    else*/
+    if(SubItemIndex<Item->SubItems->Count)
+    {
+        Rect = Item->DisplayRect(drSelectBounds);
+        Rect.left  = TListView_ColumnLeft(Item->ListView, SubItemIndex+1);
+        Rect.right = Rect.left + Item->ListView->Column[SubItemIndex+1]->Width;
+        return 0;
+    }
+    else
+        return -1;
+}
+
+
+/*
+
+bool TListView_AdvancedCustomDraw(TCustomListView *Sender, const TRect &ARect, 
+    TCustomDrawStage Stage, bool &DefaultDraw);
+
+
+//完美自绘cb6
+void __fastcall TForm1::ListView1AdvancedCustomDraw(
+      TCustomListView *Sender, const TRect &ARect, TCustomDrawStage Stage,
+      bool &DefaultDraw)
+{
+    if(Stage == cdPrePaint)//背景？
+    {
+        PaintDesktop(Sender->Canvas->Handle);
+        //Sender->Canvas->FillRect(ARect);
+        Sender->Canvas->Rectangle(0, 0, random(500), random(500));
+    }
+
+}
+
+//图标透明
+void __fastcall TForm1::ListView1AdvancedCustomDrawItem(
+      TCustomListView *Sender, TListItem *Item, TCustomDrawState State,
+      TCustomDrawStage Stage, bool &DefaultDraw)
+{
+    ::SetBkMode(Sender->Canvas->Handle, TRANSPARENT);
+    ::SendMessage(Sender->Handle, LVM_SETTEXTBKCOLOR, 0, (LPARAM)CLR_NONE);
+    ::SendMessage(Sender->Handle, LVM_SETBKCOLOR, 0, (LPARAM)CLR_NONE);
+
+}
+*/
+
+}//end namespace vcl
+}//end namespace cgl
+
+#endif //TLISTVIEW_20200216234927

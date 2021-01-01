@@ -1,0 +1,176 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ bytefile.hpp
+
+ 2018-09-28 12:49:25
+
+ 大小端文件的读写
+
+*/
+#ifndef BYTEFILE_HPP_20180928124925
+#define BYTEFILE_HPP_20180928124925
+
+#include "unifile.hpp"
+
+namespace cgl{
+namespace io{
+
+class befile
+{
+public:
+    unifile *handle;
+
+public:
+    befile(unifile* file) : handle(file)
+    {
+
+    }
+
+    uint16_t read_int16()
+    {
+        uint16_t n;
+        this->read(&n, sizeof(n));
+        return be_conv16(n);
+    }
+
+    uint32_t read_int32()
+    {
+        uint32_t n;
+        this->read(&n, sizeof(n));
+        return be_conv32(n);
+    }
+
+    uint64_t read_int64()
+    {
+        uint64_t n;
+        this->read(&n, sizeof(n));
+        return be_conv64(n);
+    }
+
+    float read_float()
+    {
+        float n;
+        this->read(&n, sizeof(n));
+        return be_conv32f(n);
+    }
+
+    double read_double()
+    {
+        double n;
+        this->read(&n, sizeof(n));
+        return be_conv64f(n);
+    }
+
+    int write_int16(uint16_t n)
+    {
+        be_conv16(n);
+        this->write(&n, sizeof(n));
+    }
+
+    int write_int32(uint32_t n)
+    {
+        be_conv32(n);
+        this->write(&n, sizeof(n));
+    }
+
+    int write_int64(uint64_t n)
+    {
+        be_conv64(n);
+        this->write(&n, sizeof(n));
+    }
+
+    int write_float(float n)
+    {
+        be_conv32f(n);
+        this->write(&n, sizeof(n));
+    }
+
+    int write_double(double n)
+    {
+        be_conv64f(n);
+        this->write(&n, sizeof(n));
+    }
+};
+
+class lefile
+{
+public:
+    unifile *handle;
+
+public:
+    lefile() : binfile()
+    {
+
+    }
+
+    uint16_t read_int16()
+    {
+        uint16_t n;
+        this->read(&n, sizeof(n));
+        return le_conv16(n);
+    }
+
+    uint32_t read_int32()
+    {
+        uint32_t n;
+        this->read(&n, sizeof(n));
+        return le_conv32(n);
+    }
+
+    uint64_t read_int64()
+    {
+        uint64_t n;
+        this->read(&n, sizeof(n));
+        return le_conv64(n);
+    }
+
+    float read_float()
+    {
+        float n;
+        this->read(&n, sizeof(n));
+        return le_conv32f(n);
+    }
+
+    double read_double()
+    {
+        double n;
+        this->read(&n, sizeof(n));
+        return le_conv64f(n);
+    }
+
+    int write_int16(uint16_t n)
+    {
+        le_conv16(n);
+        this->write(&n, sizeof(n));
+    }
+
+    int write_int32(uint32_t n)
+    {
+        le_conv32(n);
+        this->write(&n, sizeof(n));
+    }
+
+    int write_int64(uint64_t n)
+    {
+        le_conv64(n);
+        this->write(&n, sizeof(n));
+    }
+
+    int write_float(float n)
+    {
+        le_conv32f(n);
+        this->write(&n, sizeof(n));
+    }
+
+    int write_double(double n)
+    {
+        le_conv64f(n);
+        this->write(&n, sizeof(n));
+    }
+};
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //BYTEFILE_HPP_20180928124925

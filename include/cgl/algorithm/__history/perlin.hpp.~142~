@@ -1,0 +1,199 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ perlin.hpp
+
+ 2019-06-25 19:28:38
+
+ 柏林噪声处理2的n次方纹理，结果是可以平铺的
+
+*/
+#ifndef PERLIN_HPP_20190625192838
+#define PERLIN_HPP_20190625192838
+
+#include <cgl/array2d.hpp>
+#include <cgl/math/random.hpp>
+
+namespace cgl{
+
+//线性插值
+float Linear_Interpolate(float a, float b, float alpha)
+{
+    //return a * (1 - alpha) + alpha * b;
+    return a + (b - a) * alpha;
+}
+
+//余弦插值
+float Cosine_Interpolate(float a, float b, float alpha)
+{
+    alpha = (1 - std::cos(alpha * M_PI)) * 0.5f;
+    return a + (b - a) * alpha;
+}
+
+//立方插值
+float CubicLerp(float a, float b, float c, float d, float t)
+{
+	float p = (d - c) - (a - b);
+	return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b;
+}
+
+#ifdef CGL_PERLIN_COSINE
+    #define Interpolate Cosine_Interpolate
+#else
+    #define Interpolate Linear_Interpolate
+#endif
+
+//随机数
+float random(int seed, int x, int y, int z)
+{
+    int n = seed + x*73 + y*179 + z*283;
+    n = (n << 13) ^ n;
+    int m = (n * (n * n * 60493 + 19990303) + 1376312589) & 0x7fffffff;
+    return 1.0f - ((float)m / 1073741824.0f);
+}
+
+//根据octave级别，分为2^octave次方块
+//octave马赛克
+//这个算法，会使地图首位相接
+void GenerateSmoothNoise(array2d<float>& smoothNoise, const array2d<float>& baseNoise, int octave)
+{
+    int width = baseNoise.size_x();
+    int height = baseNoise.size_y();
+
+    smoothNoise.resize(width, height);
+
+    int samplePeriod = 1 << octave;
+    float sampleFrequency = 1.0f / samplePeriod;
+    int mask = samplePeriod - 1;
+
+    int x0, x1, y0, y1;
+    for (int y = 0; y < height; ++y){
+        //calculate the horizontal sampling indices
+        //y0 = (y / samplePeriod) * samplePeriod;
+        //y0 = y >> octave << octave;
+        y0 = y & ~mask;
+        y1 = (y0 + samplePeriod) % height; //wrap around
+//        y1 = (y + samplePeriod)%height;
+        float vertical_blend = (y - y0) * sampleFrequency;
+
+        for (int x = 0; x < width; ++x){
+            //calculate the vertical sampling indices
+            //x0 = (x / samplePeriod) * samplePeriod;
+            //x0 = x >> octave << octave;
+            x0 = x & ~mask;
+            x1 = (x0 + samplePeriod) % width; //wrap around
+//            x1 = (x + samplePeriod)%width;
+            float horizontal_blend = (x - x0) * sampleFrequency;
+
+            //上下左右混合对接
+            //blend the top two corners
+            float top = Interpolate(baseNoise[y0][x0], baseNoise[y1][x0], vertical_blend);
+
+            //blend the bottom two corners
+            float bottom = Interpolate(baseNoise[y0][x1], baseNoise[y1][x1], vertical_blend);
+
+            //final blend
+            smoothNoise[y][x] = Interpolate(top, bottom, horizontal_blend);
+        }
+    }
+}
+
+//计算每个级别单独函数
+float SmoothNoise(int x, int y, const array2d<float>& baseNoise, int octave)
+{
+    int width = baseNoise.size_x();
+    int height = baseNoise.size_y();
+
+    int samplePeriod = 1 << octave;
+    float sampleFrequency = 1.0f / samplePeriod;
+
+    int sample_i0 = y >> octave << octave;
+    int sample_i1 = (sample_i0 + samplePeriod) % width; //wrap around
+    float horizontal_blend = (y - sample_i0) * sampleFrequency;
+    //CGL_LOG("%f", horizontal_blend);
+
+    int sample_j0 = x >> octave << octave;
+    int sample_j1 = (sample_j0 + samplePeriod) % height; //wrap around
+    float vertical_blend = (x - sample_j0) * sampleFrequency;
+
+    float top = Linear_Interpolate(baseNoise[sample_i0][sample_j0],
+                baseNoise[sample_i1][sample_j0], horizontal_blend);
+
+    //blend the bottom two corners
+    float bottom = Linear_Interpolate(baseNoise[sample_i0][sample_j1],
+        baseNoise[sample_i1][sample_j1], horizontal_blend);
+
+    return Linear_Interpolate(top, bottom, vertical_blend);
+
+}
+
+void GeneratePerlinNoise(array2d<float>& perlinNoise, const array2d<float>& baseNoise,
+    int octaveCount,
+    float persistance = 0.5f)
+{
+    int width = baseNoise.size_x();
+    int height = baseNoise.size_y();
+
+    perlinNoise.resize(width, height);
+
+    //smooth noise
+    array2d<float> smoothNoise;
+
+    // 不同采样级别的 Noise 的叠加系数
+    //float persistance = 0.80;//75f;
+    // 不同采样级别的 Noise 的叠加比重
+    float amplitude = 1.0f;
+    // 所有采样级别的 Noise 的叠加总比重
+    float totalAmplitude = 0.0f;
+
+    //blend noise together
+    for (int octave = octaveCount - 1; octave >= 0; --octave){
+        amplitude *= persistance;
+        totalAmplitude += amplitude;
+
+        // 生成不同采样级别的 Noise
+        GenerateSmoothNoise(smoothNoise, baseNoise, octave);
+
+        // 混合采样级别的 Noise
+        for (int i = 0; i <width; i++){
+            for (int j = 0; j < height; j++){
+                perlinNoise[i][j] += smoothNoise[i][j] * amplitude;
+                //perlinNoise[i][j] += SmoothNoise(j, i, baseNoise, octave) * amplitude;
+            }
+        }
+    }
+
+    //normalisation
+    float invTotalAmplitude = 1.0f / totalAmplitude;
+    for (int i = 0; i <width; i++){
+        for (int j = 0; j <height; j++){
+            perlinNoise[i][j] *= invTotalAmplitude;
+        }
+    }
+}
+
+//生成随机噪声
+void perlin_noise_init(array2d<float>& base, size_t width, size_t height, int seed)
+{
+    base.resize(width, height);
+
+    //*
+    math::basic_random rnd(seed);
+    for (size_t y = 0; y < height; ++y){
+        for (size_t x = 0; x < width; ++x){
+            base[y][x] = float(rnd.get()) / CGL_RANDOM_MAX;
+        }
+    }
+    /*/
+    srand(seed);
+    for (size_t y = 0; y < base.size_y(); ++y){
+        for (size_t x = 0; x < base.size_x(); ++x){
+            base[y][x] = float(rand()) / RAND_MAX;
+        }
+    }
+    //*/
+}
+
+}//end namespace cgl
+
+#endif //PERLIN_HPP_20190625192838

@@ -1,0 +1,334 @@
+
+TSizeBox *sizebox;
+
+class TSizeBox2 : public TGraphicControl
+{
+private:
+    typedef TShape component_type;
+    component_type* m_points[9];    //9¸ö¿ØÖÆµã
+    TPoint m_mouse;
+    bool m_mousedown;
+    const static int POINT_SIZE = 6;
+
+public:
+    Classes::TNotifyEvent OnPaint1;
+    Classes::TNotifyEvent OnResize1;
+
+public:
+    __fastcall virtual TSizeBox2(Classes::TComponent* AOwner) : TGraphicControl(AOwner)
+    {
+        TWinControl* winctrl = dynamic_cast<TWinControl*>(AOwner);
+//        this->create(winctrl, 0, 0, 64, 64);
+//        OnReSize = NULL;
+//        OnPaint = NULL;
+        CreateControlPoints(winctrl);
+        //ResetBounds(Left, Top, Width, Height);
+        SetBoxBounds(BoundsRect);
+    }
+
+	__fastcall virtual ~TSizeBox2(void)
+    {
+        this->DeleteControlPoints();
+    }
+
+    void __fastcall Paint(void)
+    {
+        //if(OnPaint)OnPaint(this);
+        Canvas->Brush->Color = clBlue;
+        Canvas->Brush->Style = bsSolid;
+        Canvas->Rectangle(ClientRect);
+        print("paint");
+    }
+
+    void __fastcall UpdateExplicitBounds1(void)
+    {
+        print("ABC");
+    }
+
+    void __fastcall UpdateBoundsRect1(const Types::TRect &R)
+    {
+        print("UpdateBoundsRect");
+    }
+
+    virtual bool __fastcall CanResize(int &NewWidth, int &NewHeight)
+    {
+        TControl::CanResize(NewWidth, NewHeight);
+        ResetBounds(Left, Top, NewWidth, NewHeight);
+        print("can resize");
+    }
+
+    DYNAMIC void __fastcall SetZOrder(bool TopMost)
+    {
+        SetToFront();
+    }
+
+private:
+    component_type* CreateControlPoint(TWinControl* AOwner, int index)
+    {
+        component_type* obj = new component_type(AOwner);
+        obj->Parent = AOwner;
+        obj->Width = POINT_SIZE;
+        obj->Height = POINT_SIZE;
+        obj->Shape = stRectangle;
+        obj->Pen->Color = clBlue;
+        obj->Brush->Color = clBlue;
+        obj->Visible = true;
+
+        obj->Tag = index;
+        obj->OnMouseDown = ShapeMouseDown;
+        obj->OnMouseMove = ShapeMouseMove;
+        obj->OnMouseUp = ShapeMouseUp;
+        return obj;
+    }
+
+    void CreateControlPoints(TWinControl* AOwner)
+    {
+        this->DeleteControlPoints();
+        m_mousedown = false;
+        for(int i=0; i<9; ++i)
+        {
+            m_points[i] = CreateControlPoint(AOwner, i);
+        }
+
+        m_points[1]->Cursor = crSizeNS;
+        m_points[3]->Cursor = crSizeWE;
+        m_points[4]->Cursor = crSizeWE;
+        m_points[6]->Cursor = crSizeNS;
+        m_points[8]->Cursor = crSizeAll;//center
+    }
+
+    void DeleteControlPoints()
+    {
+        if(m_points[0]){
+            delete []m_points;
+            memset(m_points, 0, sizeof(m_points));
+        }
+    }
+
+
+    void ResetBounds(int x, int y, int width, int height)
+    {
+        int left = x - POINT_SIZE / 2;
+        int top = y - POINT_SIZE / 2;
+        int right = left + width;
+        int bottom = top + height;
+        int center_x = x + width / 2;
+        int center_y = y + height / 2;
+
+        set_position(0, left,     top);
+        set_position(1, center_x, top);
+        set_position(2, right,    top);
+        set_position(3, left,     center_y);
+        set_position(4, right,    center_y);
+        set_position(5, left,     bottom);
+        set_position(6, center_x, bottom);
+        set_position(7, right,    bottom);
+
+        set_position(8, center_x, center_y);
+
+        ResetCursor();
+    }
+
+    void set_position(int index, int x, int y)
+    {
+//        x -= POINT_SIZE / 2;
+//        y -= POINT_SIZE / 2;
+        if(index < 9){
+            m_points[index]->Left = x;
+            m_points[index]->Top = y;
+        }
+   }
+
+   void ResetCursor()
+    {
+        if(m_points[0]->Left < m_points[2]->Left){
+            if(m_points[0]->Top < m_points[5]->Top){
+                m_points[0]->Cursor = crSizeNWSE;
+                m_points[7]->Cursor = crSizeNWSE;
+
+                m_points[2]->Cursor = crSizeNESW;
+                m_points[5]->Cursor = crSizeNESW;
+            }
+            else{
+                m_points[0]->Cursor = crSizeNESW;
+                m_points[7]->Cursor = crSizeNESW;
+
+                m_points[2]->Cursor = crSizeNWSE;
+                m_points[5]->Cursor = crSizeNWSE;
+            }
+        }
+        else{
+            if(m_points[0]->Top < m_points[5]->Top){
+                m_points[0]->Cursor = crSizeNESW;
+                m_points[7]->Cursor = crSizeNESW;
+
+                m_points[2]->Cursor = crSizeNWSE;
+                m_points[5]->Cursor = crSizeNWSE;
+            }
+            else{
+                m_points[0]->Cursor = crSizeNWSE;
+                m_points[7]->Cursor = crSizeNWSE;
+
+                m_points[2]->Cursor = crSizeNESW;
+                m_points[5]->Cursor = crSizeNESW;
+            }
+        }
+    }
+
+    void SetToFront()
+    {
+        for(int i=0; i<9; ++i){
+            m_points[i]->BringToFront();
+        }
+    }
+
+    void __fastcall ShapeMouseDown(TObject *Sender,
+          TMouseButton Button, TShiftState Shift, int X, int Y)
+    {
+        component_type* shape = dynamic_cast<component_type*>(Sender);
+        if(shape){
+            m_mouse = TPoint(X, Y);
+            m_mousedown = true;
+        }
+    }
+
+    void __fastcall ShapeMouseMove(TObject *Sender, TShiftState Shift, int X, int Y)
+    {
+        component_type* shape = dynamic_cast<component_type*>(Sender);
+        TRect rect = GetBoxBounds();
+        if(shape && m_mousedown){
+            switch(shape->Tag)
+            {
+            case 0:
+                shape->Left = shape->Left + (X - m_mouse.x);
+                shape->Top = shape->Top + (Y - m_mouse.y);
+
+                m_points[1]->Top = shape->Top;
+                m_points[1]->Left = m_points[0]->Left + (m_points[2]->Left - m_points[0]->Left)/2;
+                m_points[2]->Top = shape->Top;
+                m_points[3]->Left = shape->Left;
+                m_points[3]->Top = m_points[0]->Top + (m_points[5]->Top - m_points[0]->Top)/2;
+                m_points[4]->Top = m_points[2]->Top + (m_points[7]->Top - m_points[2]->Top)/2;
+                m_points[5]->Left = shape->Left;
+                m_points[6]->Left = m_points[5]->Left + (m_points[7]->Left - m_points[0]->Left)/2;
+                break;
+            case 1:
+                shape->Top = shape->Top + (Y - m_mouse.y);
+
+                m_points[0]->Top = shape->Top;
+                m_points[2]->Top = shape->Top;
+                m_points[3]->Top = m_points[0]->Top + (m_points[5]->Top - m_points[0]->Top)/2;
+                m_points[4]->Top = m_points[2]->Top + (m_points[7]->Top - m_points[2]->Top)/2;
+                break;
+            case 2:
+                shape->Left = shape->Left + (X - m_mouse.x);
+                shape->Top = shape->Top + (Y - m_mouse.y);
+
+                m_points[0]->Top = shape->Top;
+                m_points[1]->Left = m_points[0]->Left + (m_points[2]->Left - m_points[0]->Left)/2;
+                m_points[1]->Top = shape->Top;
+                m_points[3]->Top = m_points[0]->Top + (m_points[5]->Top - m_points[0]->Top)/2;
+                m_points[4]->Left = shape->Left;
+                m_points[4]->Top = m_points[2]->Top + (m_points[7]->Top - m_points[2]->Top)/2;
+                m_points[6]->Left = m_points[5]->Left + (m_points[7]->Left - m_points[0]->Left)/2;
+                m_points[7]->Left = shape->Left;
+                break;
+            case 3:
+                shape->Left = shape->Left + (X - m_mouse.x);
+
+                m_points[0]->Left = shape->Left;
+                m_points[1]->Left = m_points[0]->Left + (m_points[2]->Left - m_points[0]->Left)/2;
+                m_points[5]->Left = shape->Left;
+                m_points[6]->Left = m_points[5]->Left + (m_points[7]->Left - m_points[0]->Left)/2;
+                break;
+            case 4:
+                shape->Left = shape->Left + (X - m_mouse.x);
+                m_points[2]->Left = shape->Left;
+                m_points[1]->Left = m_points[0]->Left + (m_points[2]->Left - m_points[0]->Left)/2;
+                m_points[6]->Left = m_points[5]->Left + (m_points[7]->Left - m_points[0]->Left)/2;
+                m_points[7]->Left = shape->Left;
+                break;
+            case 5:
+                shape->Left = shape->Left + (X - m_mouse.x);
+                shape->Top = shape->Top + (Y - m_mouse.y);
+
+                m_points[0]->Left = shape->Left;
+                m_points[1]->Left = m_points[0]->Left + (m_points[2]->Left - m_points[0]->Left)/2;
+                m_points[3]->Left = shape->Left;
+                m_points[3]->Top = m_points[0]->Top + (m_points[5]->Top - m_points[0]->Top)/2;
+                m_points[4]->Top = m_points[2]->Top + (m_points[7]->Top - m_points[2]->Top)/2;
+                m_points[6]->Top = shape->Top;
+                m_points[6]->Left = m_points[5]->Left + (m_points[7]->Left - m_points[0]->Left)/2;
+                m_points[7]->Top = shape->Top;
+                break;
+            case 6:
+                shape->Top = shape->Top + (Y - m_mouse.y);
+
+                m_points[5]->Top = shape->Top;
+                m_points[7]->Top = shape->Top;
+                m_points[3]->Top = m_points[0]->Top + (m_points[5]->Top - m_points[0]->Top)/2;
+                m_points[4]->Top = m_points[2]->Top + (m_points[7]->Top - m_points[2]->Top)/2;
+                break;
+            case 7:
+                shape->Left = shape->Left + (X - m_mouse.x);
+                shape->Top = shape->Top + (Y - m_mouse.y);
+
+                m_points[1]->Left = m_points[0]->Left + (m_points[2]->Left - m_points[0]->Left)/2;
+                m_points[2]->Left = shape->Left;
+                m_points[3]->Top = m_points[0]->Top + (m_points[5]->Top - m_points[0]->Top)/2;
+                m_points[4]->Left = shape->Left;
+                m_points[4]->Top = m_points[2]->Top + (m_points[7]->Top - m_points[0]->Top)/2;
+                m_points[5]->Top = shape->Top;
+                m_points[6]->Left = m_points[5]->Left + (m_points[7]->Left - m_points[0]->Left)/2;
+                m_points[6]->Top = shape->Top;
+                break;
+            case 8:
+                ResetBounds(rect.left + X - m_mouse.x, rect.top + Y - m_mouse.y, rect.Width(), rect.Height());
+                break;
+            default:
+                break;
+            }
+
+            if(shape->Tag != 8){
+                rect = GetBoxBounds();
+                rect.left += (rect.right - rect.left) / 2;
+                rect.top += (rect.bottom - rect.top) / 2;
+                set_position(8, rect.left - POINT_SIZE / 2, rect.top - POINT_SIZE / 2);
+            }
+
+            //if(OnReSize)OnReSize(0);
+
+            TRect bounds = GetBoxBounds();
+            this->SetBounds(bounds.left, bounds.top, bounds.Width(), bounds.Height());
+
+            //m_parent->Repaint();
+            //this->Paint();
+        }//end if
+    }
+
+    void __fastcall ShapeMouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y)
+    {
+        component_type* shape = dynamic_cast<component_type*>(Sender);
+        if(shape){
+            m_mouse = TPoint(X, Y);
+            m_mousedown = false;
+
+            ResetCursor();
+        }
+    }
+
+    TRect GetBoxBounds()
+    {
+        TPoint p1, p2;
+        p1 = TPoint(m_points[0]->Left+POINT_SIZE/2, m_points[0]->Top+POINT_SIZE/2);
+        p2 = TPoint(m_points[7]->Left+POINT_SIZE/2, m_points[7]->Top+POINT_SIZE/2);
+        if(p2.x < p1.x)std::swap(p1.x, p2.x);
+        if(p2.y < p1.y)std::swap(p1.y, p2.y);
+        return TRect(p1, p2);
+    }
+
+    void SetBoxBounds(TRect rc)
+    {
+        ResetBounds(rc.left, rc.top, rc.Width(), rc.Height());
+    }
+};

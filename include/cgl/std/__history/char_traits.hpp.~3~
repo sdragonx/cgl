@@ -1,0 +1,164 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ char_traits
+
+ 2018-07-27 12:24:29
+
+*/
+#ifndef CHAR_TRAITS_20180727122429
+#define CHAR_TRAITS_20180727122429
+
+#include <algorithm>
+#include <cctype>
+#include "type_traits.hpp"
+#include "string.hpp"
+
+namespace cgl{
+
+template<typename T>
+class char_traits
+{
+public:
+    typedef T char_type;    // for overloads
+    typedef typename unsigned_type<char_type>::type unsigned_type;
+
+    static char_type eof() { return '\0'; }
+
+    static void assign(char_type& x, const char_type& y)
+    {
+        x = y;
+    }
+
+    static bool equal(const char_type& x, const char_type& y)
+    {
+        return (x == y);
+    }
+
+    static bool less(const char_type& x, const char_type& y)
+    {
+        return (x < y);
+    }
+
+    static size_t length(const char_type* s)
+    {
+        return cslen(s);
+    }
+
+    static char_type* copy(char_type* s1, const char_type* s2, size_t n)
+    {
+        return (char_type*)memcpy(s1, s2, n * sizeof(char_type));
+    }
+
+    static char_type* move(char_type* s1, const char_type* s2, size_t n)
+    {
+        return (char_type*)memmove(s1, s2, n * sizeof(char_type));
+    }
+
+    static char_type* assign(char_type* s, size_t n, char_type ch)
+    {
+        std::fill_n(s, n, ch);
+        return s;
+    }
+
+    static char_type tolower(char_type c)
+    {
+        return ((unsigned)c <= 0xff) ? (char_type)std::tolower((uint8_t)c) : c;
+    }
+
+    static char_type toupper(char_type c)
+    {
+        return ((unsigned)c <= 0xff) ? (char_type)std::tolower((uint8_t)c) : c;
+    }
+
+    static int compare(const char_type* s1, const char_type* s2, size_t n)
+    {
+        ++n;
+        for(; 0 < n; ++s1, ++s2, --n){
+            if(*s1 != *s2){
+                return (static_cast<unsigned_type>(*s1) < static_cast<unsigned_type>(*s2)) ? -1 : 1;
+            }
+        }
+        return 0;
+    }
+
+    inline int icompare(const char_type* s1, const char_type* s2, size_t n)
+    {
+        char_type c1, c2;
+        for(; n > 0; ++s1, ++s2, --n){
+            c1 = this->tolower(*s1);
+            c2 = this->tolower(*s2);
+
+            if(c1 != c2){
+                return (static_cast<unsigned_type>(*s1) < static_cast<unsigned_type>(*s2)) ? -1 : 1;
+            }
+        }
+        return 0;
+    }
+
+    static const char_type *find(const char_type *s, size_t n, const char_type& _Ch)
+    {
+        //return ((const char_type *)STD wmemchr(s, _Ch, n));
+        //throw("err");
+        return 0;
+    }
+};
+
+template<>
+char* char_traits<char>::assign(char *s, size_t n, char ch)
+{
+    return (char*)memset(s, ch, n);
+}
+
+template<>
+char char_traits<char>::tolower(char c)
+{
+    return std::tolower(c);
+}
+
+template<>
+char_traits<char>::char_type char_traits<char>::toupper(char c)
+{
+    return std::toupper(c); 
+}
+
+template<>
+int char_traits<char>::compare(const char* s1, const char* s2, size_t n)
+{
+    //++n;
+    //return memcmp(s1, s2, n);
+    return cscmp(s1, s2, n);
+}
+
+
+//ÅÐ¶Ï×Ö·ûÊÇ·ñÀ¨ºÅ
+inline int is_bracket(int ch)
+{
+    switch(ch){
+    case '(': return -1;
+    case ')': return 1;
+    case '<': return -1;
+    case '>': return 1;
+    case '[': return -1;
+    case ']': return 1;
+    case '{': return -1;
+    case '}': return 1;
+    default:
+        return 0;
+    }
+}
+
+inline bool is_left_bracket(int ch)
+{
+    return is_bracket(ch) < 0;
+}
+
+inline bool is_right_bracket(int ch)
+{
+    return is_bracket(ch) > 0;
+}
+
+
+}//end namespace cgl
+
+#endif //CHAR_TRAITS_20180727122429

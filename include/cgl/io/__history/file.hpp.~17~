@@ -1,0 +1,322 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ file.hpp
+
+ 2016-07-17 21:45:13
+
+*/
+#ifndef FILE_HPP_20160717214513
+#define FILE_HPP_20160717214513
+
+#include <cgl/io/memfile.hpp>
+#include <cgl/io/filelink.hpp>
+#include <cgl/io/binfile.hpp>
+#include <cgl/io/sector.hpp>
+#include <cgl/filesystem/filetype.hpp>
+//#include <cgl/io/zip_archive.h>
+
+namespace cgl{
+namespace io{
+
+template<typename T>
+class zip_archive;
+
+template<typename T>
+class fzlib;
+
+template<typename T>
+class archive
+{
+private:
+    archive_base<T>* m_archive;
+
+public:
+    archive() : m_archive(null)
+    {
+    }
+
+    ~archive()
+    {
+        //this->close();//no auto dispose
+    }
+
+    const archive_base<T>* handle()const
+    {
+        return m_archive;
+    }
+
+    cstring<T> name()const
+    {
+        return m_archive ? m_archive->name() : cstring<T>();
+    }
+
+    int mode()const
+    {
+        return m_archive ? m_archive->mode() : 0;
+    }
+
+    int open(const char* file_name, int mode, int share)
+    {
+        return this->open(file_name, null, mode, share);
+    }
+
+    int open(const wchar_t* file_name, int mode, int share)
+    {
+        return this->open(null, file_name, mode, share);
+    }
+
+    int open_memory(const void* data, size_t size)
+    {
+        ftype_t type = filesystem::filetype_from_data(data, size);
+        if(type == filesystem::FILE_TYPE_ZIP){
+            m_archive = new zip_archive<T>();
+            return m_archive->open_memory(data, size);
+        }
+        return -1;
+    }
+
+    void close()
+    {
+        if(m_archive){
+            delete m_archive, m_archive = null;
+        }
+    }
+
+    bool is_open()const
+    {
+        return m_archive && m_archive->is_open();
+    }
+
+    bool ls(ls_data<T>& data)
+    {
+        return m_archive && m_archive->ls(data);
+    }
+
+private:
+    int open(const char* afn, const wchar_t* wfn, int mode, int share)
+    {
+        if(mode & io_zip){
+            m_archive = new zip_archive<T>();
+        }
+        else{
+            return -1;
+        }
+
+        if(afn){
+            m_archive->open(afn, mode, share);
+        }
+        else if(wfn){
+            m_archive->open(wfn, mode, share);
+        }
+
+        if(!this->is_open()){
+            this->close();
+            return -1;
+        }
+        return 0;
+    }
+
+};
+
+template<typename _char_t>
+class file
+{
+public:
+    typedef _char_t char_type;
+    typedef file<char_type> this_type;
+
+private:
+    unifile *m_io;
+
+public:
+    file():m_io(NULL)
+    {
+
+    }
+    ~file()
+    {
+        this->close();
+    }
+
+    unifile* handle()
+    {
+        return m_io;
+    }
+
+    cstring<char_type> name()const
+    {
+        return m_io ? m_io->name() : cstring<char_type>();
+    }
+
+    int mode()const
+    {
+        return m_io ? m_io->mode() : 0;
+    }
+
+    int open(const char* fn, int mode, int share)
+    {
+        this->close();
+        m_io = this->fopen(fn, null, mode, share);
+        return m_io ? 0 : -1;
+    }
+
+    int open(const wchar_t* fn, int mode, int share)
+    {
+        this->close();
+        m_io = fopen(null, fn, mode, share);
+        return m_io ? 0 : -1;
+    }
+
+    int open_memory(const void* data, size_t size)
+    {
+        this->close();
+        filelink* f = new filelink;
+        m_io->
+        return 0;
+    }
+
+    //int open_memory("program");//程序空间
+    //int open_drive("c:");//物理硬盘
+    //int open_usb(); //硬件
+    //int open_pipeline()//程序通道
+    //int open_block(file& file,
+    int open_archive(archive<char_type>& archive, const char* fn)
+    {
+        this->close();
+        if(archive.mode() & io_zip){
+            fzlib<char_type>* pzlib = new fzlib<char_type>;
+            pzlib->open(archive, fn);
+            m_io = pzlib;
+        }
+        return 0;
+    }
+
+    void close()
+    {
+        fclose(m_io);
+    }
+
+    bool is_open()const
+    {
+        return m_io && m_io->is_open();
+    }
+
+    fsize_t seek(fsize_t pos, int whence)
+    {
+        return m_io->seek(pos, whence);
+    }
+    fsize_t tell()
+    {
+        return m_io->tell();
+    }
+    fsize_t size()
+    {
+        return m_io->size();
+    }
+    fsize_t resize(fsize_t size)
+    {
+        return m_io->resize(size);
+    }
+
+    bool eof()
+    {
+        return m_io->eof();
+    }
+
+    fsize_t read(void* data, fsize_t size)
+    {
+        return m_io->read(data, size);
+    }
+
+    fsize_t write(const void* data, fsize_t size)
+    {
+        return m_io->write(data, size);
+    }
+
+    int save(const char* fn)
+    {
+        return m_io->save(fn);
+    }
+    int save(const wchar_t* fn)
+    {
+        return m_io->save(fn);
+    }
+    //int save(io_object* io);
+    int save(file<char>& f)
+    {
+        CGL_ASSERT(m_io->is_open());
+        byte_t  buf[CGL_FILE_BUFFER_SIZE];
+        fsize_t size;
+        f.resize(this->size());
+        f.seek(0, seek_begin);
+        this->seek(0, seek_begin);
+        while(!this->eof())
+        {
+            size = this->read(buf, CGL_FILE_BUFFER_SIZE);
+            f.write(buf, size);
+        }
+        return 0;
+    }
+private:
+    static unifile* fopen(const char* afn, const wchar_t* wfn, int mode, int share);
+    static int fclose(unifile* &io);
+};
+
+
+template<typename T>
+unifile* file<T>::fopen(const char* afn, const wchar_t* wfn, int mode, int share)
+{
+    unifile* io = NULL;
+    if(mode & io_memory)
+    {
+        io = new memfile;
+    }
+    else{//普通文件
+        if(mode & io_nobuffer){
+            #ifdef CGL_PLATFORM_WINDOWS
+            io = new fsector;
+            #endif
+        }
+        else{
+            io = new binfile;
+        }
+    }
+
+    if(afn)
+    {
+        io->open(afn, mode, share);
+    }
+    else if(wfn)
+    {
+        io->open(wfn, mode, share);
+    }
+    else
+    {
+        fclose(io);
+    }
+
+    if(!io->is_open())
+    {
+        fclose(io);
+    }
+
+    return io;
+}
+
+template<typename T>
+int file<T>::fclose(unifile* &io)
+{
+    if(io)
+    {
+        delete io;
+        io = null;
+    }
+    return 0;
+}
+
+
+}//end namespace io
+}//end namespace cgl
+
+#endif //FILE_HPP_20160717214513

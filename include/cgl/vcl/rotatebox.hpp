@@ -1,0 +1,235 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ rotatebox.hpp
+
+ 2019-12-17 05:20:57
+
+*/
+#ifndef ROTATEBOX_HPP_20191217052057
+#define ROTATEBOX_HPP_20191217052057
+
+#include <cgl/math.hpp>
+#include <vcl.h>
+
+namespace cgl{
+namespace vcl{
+
+class TRotateBox
+{
+public:
+    #if 0 //def _DEBUG
+    typedef TLabel component_type;
+    #else
+    typedef TShape component_type;
+    #endif
+
+    const static POINT_SIZE = 8;
+
+    TWinControl* m_owner;
+    component_type* center;
+    component_type* points[8];
+    vec2i lastmouse;
+    bool mousedown;
+
+public:
+    vec2i position;
+    vec2i size;
+    float angle;
+
+public:
+    TRotateBox()
+    {
+        size = vec2i(100, 150);
+        angle = 0;
+    }
+
+    int Create(TWinControl* AOwner, int size_x, int size_y)
+    {
+        m_owner = AOwner;
+        size = vec2i(size_x, size_y);
+        for(int i=0; i<8; ++i){
+            points[i] = createPoint(AOwner, i);
+        }
+        center = createPoint(AOwner, -1);
+        center->Cursor = crSizeAll;
+        center->OnMouseMove = centerMouseMove;
+        return 0;
+    }
+
+    void Paint(TCanvas* dc)
+    {
+        vec2i p1 = position + getPosition(0);
+        dc->Pen->Style = psDot;
+        dc->MoveTo(p1.x, p1.y);
+        vec2i p2;
+        for(int i=1; i<8; ++i){
+            p2 = position + getPosition(i);
+            dc->LineTo(p2.x, p2.y);
+        }
+        dc->LineTo(p1.x, p1.y);
+        dc->TextOut(position.x, position.y + 20, angle);
+        dc->TextOut(position.x, position.y + 40, size.x);
+        dc->TextOut(position.x, position.y + 60, size.y);
+    }
+
+    void Reshape()
+    {
+        for(int i=0; i<8; ++i){
+            vec2i p = getPosition(i);
+            setPosition(i, p.x, p.y);
+        }
+        setPosition(center, 0, 0);
+        m_owner->Repaint();
+    }
+
+    void Reset()
+    {//重置角度
+        angle = 0;
+        this->Reshape();
+    }
+
+private:
+    component_type* createPoint(TWinControl* AOwner, int id)
+    {
+        component_type* obj = new component_type(AOwner);
+        obj->Parent = AOwner;
+        #if 0
+        obj->AutoSize = false;
+        obj->Alignment = taCenter;
+        obj->Caption = id;
+        obj->Color = clSkyBlue;
+        obj->Transparent = false;
+        #else
+        obj->Shape = stCircle;
+        obj->Pen->Color = clWhite;
+        obj->Brush->Color = clSkyBlue;
+        #endif
+
+        obj->Cursor = crHandPoint;
+        obj->Tag = id;
+
+        obj->OnMouseDown = ptMouseDown;
+        obj->OnMouseMove = ptMouseMove;
+        obj->OnMouseUp = ptMouseUp;
+
+        vec2i p = orgPosition(id);
+        setPosition(obj, p.x, p.y);
+        obj->Width = POINT_SIZE;
+        obj->Height = POINT_SIZE;
+        return obj;
+    }
+
+    vec2i orgPosition(int id)
+    {
+        switch(id){
+        case 0: return vec2i(size.x, 0);
+        case 1: return vec2i(size.x, size.y);
+        case 2: return vec2i(0, size.y);
+        case 3: return vec2i(-size.x, size.y);
+        case 4: return vec2i(-size.x, 0);
+        case 5: return vec2i(-size.x, -size.y);
+        case 6: return vec2i(0, -size.y);
+        case 7: return vec2i(size.x, -size.y);
+        default: return vec2i();
+        }
+    }
+
+    float orgAngle(int id)
+    {
+        vec2i p = orgPosition(id);
+        return math::angle(p.x, p.y);
+    }
+
+    vec2i getPosition(int id)
+    {
+        vec2i p = orgPosition(id);
+        return p.rotate(angle);
+    }
+
+    void setPosition(int id, int x, int y)
+    {
+        points[id]->Left = position.x + x - POINT_SIZE / 2;
+        points[id]->Top = position.y + y - POINT_SIZE / 2;
+    }
+
+    void setPosition(component_type* obj, int x, int y)
+    {
+        obj->Left = position.x + x - POINT_SIZE / 2;
+        obj->Top = position.y + y - POINT_SIZE / 2;
+    }
+
+    vec2i getPosition(component_type* obj)
+    {
+        vec2i p;
+        p.x = obj->Left;
+        p.y = obj->Top;
+        p += 8;
+        p -= position;
+        return p;
+    }
+
+    void __fastcall ptMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y)
+    {//
+        lastmouse = vec2i(X, Y);
+        mousedown = true;
+    }
+
+    void __fastcall ptMouseMove(TObject *Sender, TShiftState Shift, int X, int Y)
+    {//
+        component_type* obj = dynamic_cast<component_type*>(Sender);
+        if(!obj){
+            return ;
+        }
+
+        if(mousedown){
+            obj->Left += X - lastmouse.x;
+            obj->Top += Y - lastmouse.y;
+            vec2i p = getPosition(obj);
+            float a = math::angle(p.x, p.y);
+            float oa = orgAngle(obj->Tag);
+            angle = a - oa;
+
+            //缩放宽高
+            p.rotate(-angle);
+            switch(obj->Tag){
+            case 0: size.x = p.x; break;
+//            case 1: size = p;     break;
+            case 2: size.y = p.y; break;
+//            case 3: size = vec2i(-p.x, p.y);    break;
+            case 4: size.x = -p.x;                break;
+//            case 5: size = -p;                    break;
+            case 6: size.y = -p.y;                break;
+//            case 7: size = vec2i(p.x, -p.y);    break;
+            }
+
+            this->Reshape();
+        }
+    }
+
+    void __fastcall centerMouseMove(TObject *Sender, TShiftState Shift, int X, int Y)
+    {//
+        component_type* obj = dynamic_cast<component_type*>(Sender);
+        if(!obj){
+            return ;
+        }
+
+        if(mousedown){
+            vec2i offset = vec2i(X - lastmouse.x, Y - lastmouse.y);
+            obj->Left += X - lastmouse.x;
+            obj->Top += Y - lastmouse.y;
+            position += offset;
+            this->Reshape();
+        }
+    }
+
+    void __fastcall ptMouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y)
+    {//
+        mousedown = false;
+    }
+};
+
+}//end namespace vcl
+}//end namespace cgl
+
+#endif //ROTATEBOX_HPP_20191217052057

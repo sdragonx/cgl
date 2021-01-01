@@ -4,7 +4,24 @@
 // The same caveats as 32-bit MurmurHash2 apply here - beware of alignment 
 // and endian-ness issues if used across multiple platforms.
 
+/*
 typedef unsigned __int64 uint64_t;
+*/
+
+#if defined(_MSC_VER) && (_MSC_VER < 1600)
+
+typedef unsigned char uint8_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+
+// Other compilers
+
+#else	// defined(_MSC_VER)
+
+#include <stdint.h>
+
+#endif // !defined(_MSC_VER)
+
 
 // 64-bit hash for 64-bit platforms
 

@@ -1,0 +1,126 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+
+#include "EditPlus.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+TEditPlus *EditPlus;
+
+static HANDLE sci_handle = LoadLibrary(TEXT("SciLexer.dll"));
+
+
+typedef string_t SCIString;
+//---------------------------------------------------------------------------
+
+bool IsWordChar(int ch)
+{
+    return isalpha(ch) || isdigit(ch) || ch == '_';
+}
+
+//¹Ø¼ü×Ö²éÑ¯Àà
+class keywords_query
+{
+public:
+    std::vector<string_t> keywords;
+    std::vector<string_t> functions;
+    std::map<string_t, string_t> tips;
+
+    string_t find(const string_t& str)
+    {
+        std::vector<string_t> ls;
+        if(!str.empty()){
+            find_items(ls, keywords, str);
+            find_items(ls, functions, str);
+        }
+        return join(ls);
+    }
+
+    string_t ls_keywords()
+    {
+        std::vector<string_t> ls;
+        list_items(ls, keywords);
+        return join(ls);
+    }
+
+    string_t ls_functions()
+    {
+        std::vector<string_t> ls;
+        list_items(ls, functions);
+        return join(ls);
+    }
+
+    string_t all()
+    {
+        std::vector<string_t> ls;
+        list_items(ls, keywords);
+        list_items(ls, functions);
+        return join(ls);
+    }
+
+private:
+    void find_items(std::vector<string_t>& ls, const std::vector<string_t>& items, const string_t& str)
+    {
+        for(size_t i=0; i<items.size(); ++i){
+            if(!strnicmp(items[i].c_str(), str.c_str(), str.length())){
+                ls.push_back(items[i]);
+            }
+        }
+    }
+
+    void list_items(std::vector<string_t>& ls, const std::vector<string_t>& items)
+    {
+        for(size_t i=0; i<items.size(); ++i){
+            ls.push_back(items[i]);
+        }
+    }
+
+    string_t join(std::vector<string_t>& ls)
+    {
+        std::sort(ls.begin(), ls.end());
+        string_t text;
+        text.join(ls, ' ');
+        return text;
+    }
+};
+
+class TSCIEditor : public TWinControl
+{
+public:
+    typedef sptr_t (*SCI_DIRECT)(sptr_t ptr, unsigned int iMessage, uptr_t wParam, sptr_t lParam);
+
+private:
+    SCI_DIRECT    sci_send;
+    sptr_t        sci_ptr;
+
+protected:
+    virtual void __fastcall CreateParams(Controls::TCreateParams &Params);
+    virtual void __fastcall WndProc(Messages::TMessage &Message);
+
+public:
+    __fastcall virtual TSCIEditor(TComponent* Owner);
+    __fastcall TSCIEditor(HWND ParentWindow) : TWinControl(ParentWindow) { }
+
+    void Init();
+
+    sptr_t send_message(unsigned int iMessage, uptr_t wParam = 0, sptr_t lParam = 0)
+    {
+        if(sci_send){
+            return sci_send(sci_ptr, iMessage, wParam, lParam);
+        }
+        return 0;
+    }
+
+__published:
+    __property OnMouseDown;
+    __property OnMouseMove;
+    __property OnMouseUp;
+};
+//---------------------------------------------------------------------------
+__fastcall TEditPlus::TEditPlus(TComponent* Owner)
+    : TFrame(Owner)
+{
+}
+//---------------------------------------------------------------------------

@@ -1,0 +1,86 @@
+/*
+ Copyright (c) 2005-2020 sdragonx (mail:sdragonx@foxmail.com)
+
+ zoom2d.hpp
+
+ 2020-02-26 21:58:32
+
+ 以鼠标为中心缩放矩形区域
+
+*/
+#ifndef ZOOM2D_HPP_20200226215832
+#define ZOOM2D_HPP_20200226215832
+
+#include <cgl/vec.hpp>
+
+namespace cgl{
+
+#ifndef ZOOM_MIN
+  #define ZOOM_MIN 0.125f
+  #define ZOOM_MAX 64.0f
+#endif
+
+void zoom_scene2D(
+    vec4i& bounds,  //视口位置
+    float& zoom,    //缩放比
+    vec2i size,     //原始大小
+    vec3i mouse     //鼠标位置
+    )
+{
+    float zoom_bak = zoom;
+    float step;
+    if(mouse.z == 0){
+    }
+    else{
+        if(zoom < 100){
+        }
+        else{
+
+        }
+        if(mouse.z < 0){
+            //if(zoom < 200)zoom -= 0.05f;
+            zoom -= 0.05f;
+        }
+        else{
+            zoom += 0.05f;
+        }
+    }
+    //zoom *= step;
+
+    if(zoom < ZOOM_MIN){
+        zoom = ZOOM_MIN;
+    }
+    if(zoom > ZOOM_MAX){
+        zoom = ZOOM_MAX;
+    }
+
+    float ratio = zoom / zoom_bak;
+    bounds.x = mouse.x - (mouse.x - bounds.x) * ratio;
+    bounds.y = mouse.y - (mouse.y - bounds.y) * ratio;
+    bounds.width  = size.width  * zoom;
+    bounds.height = size.height * zoom;
+}
+
+//位置修正
+//矩形不能离开屏幕中心
+void bounds_range(vec4i& bounds, vec4i viewport)
+{
+    vec2i c = viewport.center();
+    if(bounds.x > c.x){
+        bounds.x = c.x;
+    }
+    if(bounds.y > c.y){
+        bounds.y = c.y;
+    }
+
+    if(bounds.get_right() < c.x){
+        bounds.x += c.x - bounds.get_right();
+    }
+    if(bounds.get_bottom() < c.y){
+        bounds.y += c.y - bounds.get_bottom();
+    }
+}
+
+}//end namespace cgl
+
+#endif //ZOOM2D_HPP_20200226215832
